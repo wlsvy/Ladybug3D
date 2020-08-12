@@ -1,6 +1,8 @@
 # Folders
 /out
 /.vs
+/Ladybug3D/out
+/Ladybug3D/.vs
 
 # Prerequisites
 *.d
