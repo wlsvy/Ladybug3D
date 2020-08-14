@@ -1,9 +1,25 @@
-﻿# CMakeList.txt: Ladybug3D에 대한 CMake 프로젝트, 여기에 소스를 포함하고
-# 프로젝트 특정 논리를 정의합니다.
-#
-cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.8)
+# Target name
+set(target Ladybug3D)
 
-# 이 프로젝트의 실행 파일에 소스를 추가합니다.
-add_executable (Ladybug3D "Ladybug3D.cpp" "Ladybug3D.h")
+#include / link
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${THIRD_PARTY_DIRECTORY})
 
-# TODO: 필요한 경우 테스트를 추가하고 대상을 설치합니다.
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+link_libraries(imgui)
+link_libraries(d3d11)
+
+# Sources
+file(GLOB sources
+	${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+
+add_executable(${target}
+	${sources})
+
+# Project options
+set_target_properties(${target}
+    PROPERTIES
+    ${DEFAULT_PROJECT_OPTIONS})
+	
