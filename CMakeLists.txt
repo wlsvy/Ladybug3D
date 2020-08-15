@@ -1,7 +1,4 @@
-﻿# CMakeList.txt : 최상위 CMake 프로젝트 파일, 전역 구성을 수행하고
-# 여기에 하위 프로젝트를 포함합니다.
-#
-cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.8)
 
 project (Ladybug3D)
 
@@ -18,9 +15,13 @@ set(DEFAULT_CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
-
+set(SCRIPT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Ladybug3D/Script)
+set(LIBRARY_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Ladybug3D/Libraries)
 set(THIRD_PARTY_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Ladybug3D/ThirdParty)
 
 # 하위 프로젝트를 포함합니다.
 add_subdirectory(${THIRD_PARTY_DIRECTORY}/imgui)
-add_subdirectory("Ladybug3D")
+add_subdirectory(${LIBRARY_DIRECTORY}/D3D11)
+add_subdirectory(Ladybug3D)
+
+#add_dependencies(Ladybug3D_D3D11, d3d11)

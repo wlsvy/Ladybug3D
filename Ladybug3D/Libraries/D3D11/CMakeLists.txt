@@ -1,5 +1,9 @@
 # Target name
-set(target imgui)
+set(target Ladybug3D_D3D11)
+
+# Link Library
+link_libraries(d3d11)
+link_libraries(DXGI)
 
 # Sources
 file(GLOB sources
