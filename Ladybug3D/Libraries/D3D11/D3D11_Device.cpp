@@ -2,58 +2,36 @@
 #include "D3D11_Common.hpp"
 
 using namespace Ladybug3D;
-using namespace Ladybug3D::D3D11;
 using namespace std;
 using namespace Microsoft::WRL;
 
-const vector<ComPtr<IDXGIAdapter>>& Device::GetAdapters() {
-	if (!m_Adapters.empty()) {
-		return m_Adapters;
+namespace Ladybug3D::D3D11 {
+	Device::Device()
+	{
 	}
 
-	try {
-		ComPtr<IDXGIFactory> pFactory;
+	Device::~Device()
+	{
+	}
 
-		ThrowIfFailed(
-			CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(pFactory.GetAddressOf())),
-			"Failed to create DXGIFactory for enumerating adapters.");
-
-		IDXGIAdapter * pAdapter;
-		UINT index = 0;
-
-		while (SUCCEEDED(pFactory->EnumAdapters(index, &pAdapter))) {
-			m_Adapters.push_back(pAdapter);
-			index++;
+	bool Device::Initialize(HWND hwnd, UINT width, UINT height)
+	{
+		try {
+			CreateAdapters();
+			CreateDevice(hwnd, width, height);
+			CreateMainRenderTarget();
+			SetViewPort(width, height);
 		}
-	}
-	catch (exception& e) {
-		PrintConsoleLog(e.what());
-	}
-
-	return m_Adapters;
-}
-
-
-
-Device::Device()
-{
-	
-}
-
-Device::~Device()
-{
-}
-
-bool Device::Initialize(HWND hwnd, UINT width, UINT height)
-{
-	try {
-		auto& adapters = GetAdapters();
-		if (adapters.empty())
-		{
-			PrintConsoleLog("No IDXGI Adapters found.");
+		catch (std::exception& e) {
+			PrintConsoleLog(e.what());
 			return false;
 		}
 
+		return true;
+	}
+
+	void Device::CreateDevice(HWND hwnd, UINT width, UINT height)
+	{
 		DXGI_SWAP_CHAIN_DESC scd = { 0 };
 		scd.BufferDesc.Width = width;
 		scd.BufferDesc.Height = height;
@@ -75,7 +53,7 @@ bool Device::Initialize(HWND hwnd, UINT width, UINT height)
 
 		ThrowIfFailed(
 			D3D11CreateDeviceAndSwapChain(
-				adapters.front().Get(),
+				GetAdapters().front().Get(),
 				D3D_DRIVER_TYPE_UNKNOWN,
 				NULL,
 				D3D11_CREATE_DEVICE_DEBUG,
@@ -89,10 +67,57 @@ bool Device::Initialize(HWND hwnd, UINT width, UINT height)
 				this->m_DeviceContext.GetAddressOf()),
 			"Failed to create device and swapchain.");
 	}
-	catch (std::exception& e) {
-		PrintConsoleLog(e.what());
-		return false;
+
+	void Device::CreateAdapters()
+	{
+		ComPtr<IDXGIFactory> pFactory;
+
+		ThrowIfFailed(
+			CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(pFactory.GetAddressOf())),
+			"Failed to create DXGIFactory for enumerating adapters.");
+
+		IDXGIAdapter* pAdapter;
+		UINT index = 0;
+
+		while (SUCCEEDED(pFactory->EnumAdapters(index, &pAdapter))) {
+			m_Adapters.push_back(pAdapter);
+			index++;
+		}
 	}
 
-	return true;
+	void Device::CreateMainRenderTarget()
+	{
+		ComPtr<ID3D11Texture2D> backBuffer;
+		ThrowIfFailed(
+			m_Swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf())),
+			"Failed To Get BackBuffer.");
+
+		ThrowIfFailed(
+			m_Device->CreateRenderTargetView(backBuffer.Get(), NULL, this->m_MainRenderTargetView.GetAddressOf()),
+			"Failed to create render target view.");
+	}
+
+	void Device::SetViewPort(UINT width, UINT height)
+	{
+		CD3D11_VIEWPORT viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
+		m_DeviceContext->RSSetViewports(1, &viewport);
+	}
 }
+
+
+
+//void DX11Resources::CreateBackBufferAndMainRTV(UINT width, UINT height)
+//{
+//	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
+//	ThrowIfFailed(
+//		m_Swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf())),
+//		"GetBuffer Failed.");
+//
+//	ThrowIfFailed(
+//		m_Device->CreateRenderTargetView(backBuffer.Get(), NULL, this->m_MainRenderTargetView.GetAddressOf()),
+//		"Failed to create render target view.");
+//
+//	//뷰포트 만들기 & 세팅
+//	CD3D11_VIEWPORT viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
+//	m_DeviceContext->RSSetViewports(1, &viewport);
+//}
