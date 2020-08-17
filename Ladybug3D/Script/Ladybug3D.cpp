@@ -9,7 +9,7 @@
 #include <dinput.h>
 #include <tchar.h>
 #include <Util.hpp>
-#include <D3D11/D3D11_Resources.hpp>
+#include <D3D11/D3D11_GpuInterface.hpp>
 
 using namespace std;
 
@@ -18,7 +18,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 int main()
 {
     Ladybug3D::Util::PrintHello();
-    Ladybug3D::D3D11::Resources r;
+    Ladybug3D::D3D11::GpuInterface r;
 
     // Create application window
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("ImGui Example"), NULL };

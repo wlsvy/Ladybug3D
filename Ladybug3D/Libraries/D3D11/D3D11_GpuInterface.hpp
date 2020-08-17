@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include <stdint.h>
-#include <Windows.h>
+
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
@@ -11,18 +11,18 @@ struct ID3D11RenderTargetView;
 namespace Ladybug3D::D3D11 {
 	class Device;
 
-	class Resources {
+	class GpuInterface {
 	public:
-		Resources();
-		~Resources();
+		GpuInterface();
+		~GpuInterface();
 
-		bool Initialize(HWND hwnd, int width, int height);
+		bool Initialize(void* hwnd, uint32_t width, uint32_t height);
 
 		void SetRenderTarget(
 			int numViews,
 			ID3D11RenderTargetView* const* renderTargetView,
 			ID3D11DepthStencilView* depthStencilView);
-		void ResizeMainRenderTarget(int width, int height);
+		void ResizeMainRenderTarget(uint32_t width, uint32_t height);
 		
 		ID3D11RenderTargetView* const* GetMainRenderTargetAddr() const;
 		ID3D11RenderTargetView* GetMainRenderTarget() const;

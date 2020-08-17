@@ -1,5 +1,6 @@
-#include "D3D11_Resources.hpp"
+#include "D3D11_GpuInterface.hpp"
 
+#include <Windows.h>
 #include <d3d11.h>
 #include <array>
 #include "D3D11_Device.hpp"
@@ -9,22 +10,20 @@ using namespace std;
 using namespace Ladybug3D;
  
 namespace Ladybug3D::D3D11 {
-	Resources::Resources()
+	GpuInterface::GpuInterface() : m_Device(make_shared<Device>())
 	{
 	}
 
-	Resources::~Resources()
+	GpuInterface::~GpuInterface()
 	{
 	}
 
-	bool Resources::Initialize(HWND hwnd, int width, int height)
+	bool GpuInterface::Initialize(void* hwnd, uint32_t width, uint32_t height)
 	{
-		m_Device = make_shared<Device>();
-
-		return m_Device->Initialize(hwnd, width, height);
+		return m_Device->Initialize(static_cast<HWND>(hwnd), width, height);
 	}
 
-	void Resources::SetRenderTarget(
+	void GpuInterface::SetRenderTarget(
 		int numViews,
 		ID3D11RenderTargetView* const* renderTargetView,
 		ID3D11DepthStencilView* depthStencilView)
@@ -50,32 +49,32 @@ namespace Ladybug3D::D3D11 {
 			//Profiler::GetInstance().BindingCount_RenderTarget++;
 		}
 	}
-	void Resources::ResizeMainRenderTarget(int width, int height)
+	void GpuInterface::ResizeMainRenderTarget(uint32_t width, uint32_t height)
 	{
 		//m_Device->GetSwapChain()->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
 
 	}
-	ID3D11RenderTargetView* const* Resources::GetMainRenderTargetAddr() const
+	ID3D11RenderTargetView* const* GpuInterface::GetMainRenderTargetAddr() const
 	{
 		return m_Device->GetMainRenderTargetAddress();
 	}
-	ID3D11RenderTargetView* Resources::GetMainRenderTarget() const
+	ID3D11RenderTargetView* GpuInterface::GetMainRenderTarget() const
 	{
 		return m_Device->GetMainRenderTarget();
 	}
-	void Resources::ClearRenderTargetView(ID3D11RenderTargetView* rtv, const float* clearColor) const
+	void GpuInterface::ClearRenderTargetView(ID3D11RenderTargetView* rtv, const float* clearColor) const
 	{
 		m_Device->GetDeviceContext()->ClearRenderTargetView(rtv, clearColor);
 	}
-	void Resources::PresentSwapChain() const
+	void GpuInterface::PresentSwapChain() const
 	{
 		m_Device->GetSwapChain()->Present(1, 0);
 	}
-	ID3D11Device* Resources::GetDeivce() const
+	ID3D11Device* GpuInterface::GetDeivce() const
 	{
 		return m_Device->GetDevice();
 	}
-	ID3D11DeviceContext* Resources::GetDeviceContext() const
+	ID3D11DeviceContext* GpuInterface::GetDeviceContext() const
 	{
 		return m_Device->GetDeviceContext();
 	}

@@ -13,8 +13,12 @@ link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 link_libraries(imgui)
 link_libraries(d3d11)
 link_libraries(Ladybug3D_D3D11)
+link_libraries(d3d12)
+link_libraries(Ladybug3D_D3D12)
 
 # Sources
+file(GLOB headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 file(GLOB sources
 	${CMAKE_CURRENT_SOURCE_DIR}/Script/*.cpp)
 
