@@ -1,15 +1,14 @@
 ﻿#include "Ladybug3D.hpp"
 
-
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_impl_win32.h>
-#include <ImGui/imgui_impl_dx11.h>
-#include <d3d11.h>
+//#include <ImGui/imgui_impl_dx11.h>
+#include <ImGui/imgui_impl_dx12.h>
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
-#include <tchar.h>
 #include <Util.hpp>
 #include <D3D11/D3D11_GpuInterface.hpp>
+#include <D3D12/D3D12_GpuInterface.hpp>
 #include <WindowContainer.hpp>
 
 using namespace std;
@@ -29,7 +28,8 @@ int main()
     wc.Create("Hellow Ladybug3D", "Ladybug3D", 1280, 800);
     wc.Show();
 
-    Ladybug3D::D3D11::GpuInterface gi;
+    Ladybug3D::D3D12::GpuInterface gi;
+    //Ladybug3D::D3D11::GpuInterface gi;
     if (!gi.Initialize(wc.GetHandle(), 1280, 800)) {
         wc.Destroy();
         return 1;
@@ -38,16 +38,20 @@ int main()
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
 
     // Setup Platform/Renderer bindings
     ImGui_ImplWin32_Init(wc.GetHandle());
-    ImGui_ImplDX11_Init(gi.GetDeivce(), gi.GetDeviceContext());
+    //ImGui_ImplDX11_Init(gi.GetDeivce(), gi.GetDeviceContext());
+    ImGui_ImplDX12_Init(
+        gi.GetDevice(), 
+        Ladybug3D::D3D12::FRAME_COUNT,
+        DXGI_FORMAT_R8G8B8A8_UNORM, 
+        gi.GetSrvDescriptorHeap(),
+        gi.GetSrvDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
+        gi.GetSrvDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
     // Our state
     bool show_demo_window = true;
@@ -57,7 +61,8 @@ int main()
     // Main loop
     while (wc.Tick()) {
         // Start the Dear ImGui frame
-        ImGui_ImplDX11_NewFrame();
+        //ImGui_ImplDX11_NewFrame();
+        ImGui_ImplDX12_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
@@ -99,15 +104,22 @@ int main()
         }
 
         // Rendering
+        gi.RenderBegin();
+        gi.SetRenderTarget(1, gi.GetRtvDescriptorHeap(), false, nullptr);
+        gi.ClearRenderTarget(gi.GetRtvDescriptorHeap(), (float*)&clear_color);
+        //gi.SetRenderTarget(1, gi.GetMainRenderTargetAddr(), nullptr);
+        //gi.ClearRenderTargetView(gi.GetMainRenderTarget(), (float*)&clear_color);
+        gi.GetCommandList()->SetDescriptorHeaps(1, gi.GetSrvDescriptorHeapAddr());
         ImGui::Render();
-        gi.SetRenderTarget(1, gi.GetMainRenderTargetAddr(), nullptr);
-        gi.ClearRenderTargetView(gi.GetMainRenderTarget(), (float*)&clear_color);
-        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+        //ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+        ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), gi.GetCommandList());
+        gi.RenderEnd();
         gi.PresentSwapChain();
     }
 
     // Cleanup
-    ImGui_ImplDX11_Shutdown();
+    //ImGui_ImplDX11_Shutdown();
+    ImGui_ImplDX12_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 

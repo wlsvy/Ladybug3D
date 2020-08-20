@@ -1,44 +1,83 @@
 #include "D3D12_GpuInterface.hpp"
 
+#include <iostream>
+#include <array>
 #include <d3d12.h>
 #include "d3dx12.h"
 #include "D3D12_Util.hpp"
 
+using namespace std;
 using namespace Microsoft::WRL;
 
 namespace Ladybug3D::D3D12 {
 
-	GpuInterface::GpuInterface(UINT width, UINT height) : 
-		m_Width(width),
-		m_Height(height),
-		m_aspectRatio(static_cast<float>(width) / static_cast<float>(height))
+	GpuInterface::GpuInterface()
 	{
-
 	}
+
 	GpuInterface::~GpuInterface() {
-
+        ::CloseHandle(m_fenceEvent);
 	}
-	void GpuInterface::OnInit(HWND hwnd)
+
+	bool GpuInterface::Initialize(HWND hwnd, UINT width, UINT height)
 	{
-		LoadPipeline(hwnd);
+        try {
+            m_Width = width;
+            m_Height = height;
+            m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 
-        ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_commandList)));
-        ThrowIfFailed(m_commandList->Close());
-        ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+            LoadPipeline(hwnd);
 
-        m_fenceValue = 1;
-        m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-        if (m_fenceEvent == nullptr)
-        {
-            ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+            ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(&m_commandList)));
+            ThrowIfFailed(m_commandList->Close());
+            ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+
+            m_fenceValue = 1;
+            m_fenceEvent = ::CreateEvent(nullptr, FALSE, FALSE, nullptr);
+            if (m_fenceEvent == nullptr)
+            {
+                ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+            }
         }
+        catch (HrException& e) {
+            cout << HrToString(e.Error()) << endl;
+            return false;
+        }
+        return true;
 	}
+
 	void GpuInterface::OnUpdate()
 	{
 	}
+
 	void GpuInterface::OnRender()
 	{
-        PopulateCommandList();
+        auto backBuffer = m_renderTargets[m_frameIndex].Get();
+        CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
+
+        m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+
+        ThrowIfFailed(m_commandAllocator->Reset());
+        ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
+
+        auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            backBuffer,
+            D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        m_commandList->ResourceBarrier(1, &barrier);
+
+        
+        m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+        const float clearColor[] = { 0.45f, 0.55f, 0.60f, 1.00f };
+        m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+        m_commandList->SetDescriptorHeaps(1, m_srvHeap.GetAddressOf());
+
+        barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            backBuffer,
+            D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+        m_commandList->ResourceBarrier(1, &barrier);
+        ThrowIfFailed(m_commandList->Close());
+
+        //PopulateCommandList();
         ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
         m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
@@ -47,58 +86,96 @@ namespace Ladybug3D::D3D12 {
 
         WaitForPreviousFrame();
 	}
+
 	void GpuInterface::OnDestroy()
 	{
 	}
-	void GpuInterface::LoadPipeline(HWND hwnd)
-	{
-        UINT dxgiFactoryFlags = 0;
 
+    void GpuInterface::GetDebugInterface()
+    {
+        ComPtr<ID3D12Debug> debugInterface;
+        ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
+        debugInterface->EnableDebugLayer();
+    }
+
+    void GpuInterface::GetAdapters(bool useWarp)
+    {
+        ComPtr<IDXGIFactory4> factory;
+        UINT createFactoryFlags = 0;
 #if defined(_DEBUG)
-        ComPtr<ID3D12Debug> debugController;
-        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
-        {
-            debugController->EnableDebugLayer();
-
-            // Enable additional debug layers.
-            dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-        }
+        createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
-        ComPtr<IDXGIFactory4> factory;
-        ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)));
+        ThrowIfFailed(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&factory)));
 
-        if (m_useWarpDevice)
+        ComPtr<IDXGIAdapter1> adapter1;
+        if (useWarp)
         {
-            ComPtr<IDXGIAdapter> warpAdapter;
-            ThrowIfFailed(factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter)));
-
-            ThrowIfFailed(D3D12CreateDevice(
-                warpAdapter.Get(),
-                D3D_FEATURE_LEVEL_11_0,
-                IID_PPV_ARGS(&m_device)
-            ));
+            ThrowIfFailed(factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter1)));
+            ThrowIfFailed(adapter1.As(&m_Adapter));
         }
         else
         {
-            ComPtr<IDXGIAdapter1> hardwareAdapter;
-            GetHardwareAdapter(factory.Get(), &hardwareAdapter);
-
-            ThrowIfFailed(D3D12CreateDevice(
-                hardwareAdapter.Get(),
-                D3D_FEATURE_LEVEL_11_0,
-                IID_PPV_ARGS(&m_device)
-            ));
+            GetHardwareAdapter(factory.Get(), adapter1.GetAddressOf());
+            ThrowIfFailed(adapter1.As(&m_Adapter));
         }
+    }
 
-        // Describe and create the command queue.
+    void GpuInterface::CreateDevice(IDXGIAdapter4* adapter)
+    {
+        ComPtr<ID3D12Device2> d3d12Device2;
+        ThrowIfFailed(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(m_device.GetAddressOf())));
+
+        // Enable debug messages in debug mode.
+#if defined(_DEBUG)
+        ComPtr<ID3D12InfoQueue> pInfoQueue;
+        if (SUCCEEDED(m_device.As(&pInfoQueue)))
+        {
+            pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+            pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+            pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+
+            D3D12_MESSAGE_SEVERITY Severities[] =
+            {
+                D3D12_MESSAGE_SEVERITY_INFO
+            };
+
+            D3D12_MESSAGE_ID DenyIds[] = {
+                D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,   
+                D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,                         
+                D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,                       
+            };
+
+            D3D12_INFO_QUEUE_FILTER NewFilter = {};
+            NewFilter.DenyList.NumSeverities = _countof(Severities);
+            NewFilter.DenyList.pSeverityList = Severities;
+            NewFilter.DenyList.NumIDs = _countof(DenyIds);
+            NewFilter.DenyList.pIDList = DenyIds;
+
+            ThrowIfFailed(pInfoQueue->PushStorageFilter(&NewFilter));
+        }
+#endif
+    }
+
+    void GpuInterface::CreateCommandQueue()
+    {
         D3D12_COMMAND_QUEUE_DESC queueDesc = {};
         queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
         ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
+    }
 
-        // Describe and create the swap chain.
+    void GpuInterface::CreateSwapChain(HWND hwnd)
+    {
+        UINT createFactoryFlags = 0;
+#if defined(_DEBUG)
+        createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+#endif
+
+        ComPtr<IDXGIFactory4> factory4;
+        ThrowIfFailed(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&factory4)));
+
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
         swapChainDesc.BufferCount = FrameCount;
         swapChainDesc.Width = m_Width;
@@ -108,37 +185,57 @@ namespace Ladybug3D::D3D12 {
         swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         swapChainDesc.SampleDesc.Count = 1;
 
-        ComPtr<IDXGISwapChain1> swapChain;
-        ThrowIfFailed(factory->CreateSwapChainForHwnd(
-            m_commandQueue.Get(),        // Swap chain needs the queue so that it can force a flush on it.
+        ComPtr<IDXGISwapChain1> swapChain1;
+        ThrowIfFailed(factory4->CreateSwapChainForHwnd(
+            m_commandQueue.Get(),
             hwnd,
             &swapChainDesc,
             nullptr,
             nullptr,
-            &swapChain
-        ));
+            &swapChain1));
 
-        // This sample does not support fullscreen transitions.
-        ThrowIfFailed(factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER));
+        // Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen will be handled manually.
+        ThrowIfFailed(factory4->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER));
+        ThrowIfFailed(swapChain1.As(&m_swapChain));
+    }
 
-        ThrowIfFailed(swapChain.As(&m_swapChain));
-        m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+    void GpuInterface::LoadPipeline(HWND hwnd)
+	{
+        UINT dxgiFactoryFlags = 0;
+
+#if defined(_DEBUG)
+        GetDebugInterface();
+        dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+#endif
+
+        GetAdapters(false);
+        CreateDevice(m_Adapter.Get());
+        CreateCommandQueue();
+        CreateSwapChain(hwnd);
+
 
         // Create descriptor heaps.
         {
             // Describe and create a render target view (RTV) descriptor heap.
-            D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-            rtvHeapDesc.NumDescriptors = FrameCount;
-            rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-            rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-            ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
+            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+            desc.NumDescriptors = FrameCount;
+            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+            ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_rtvHeap)));
 
             m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
         }
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+            desc.NumDescriptors = 1;
+            desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+            desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_srvHeap)));
+        }
+        
 
         // Create frame resources.
         {
-            D3D12_CPU_DESCRIPTOR_HANDLE desc;
             CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
             // Create a RTV for each frame.
@@ -182,10 +279,65 @@ namespace Ladybug3D::D3D12 {
             ThrowIfFailed(m_fence->SetEventOnCompletion(fence, m_fenceEvent));
             WaitForSingleObject(m_fenceEvent, INFINITE);
         }
-
-        m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 	}
-    void GpuInterface::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter)
+
+    void GpuInterface::RenderBegin()
+    {
+        m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+
+        ThrowIfFailed(m_commandAllocator->Reset());
+        //ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
+        ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
+
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = m_renderTargets[m_frameIndex].Get();
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+        /*auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            m_renderTargets[m_frameIndex].Get(),
+            D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);*/
+        m_commandList->ResourceBarrier(1, &barrier);
+    }
+
+    void GpuInterface::RenderEnd()
+    {
+        auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            m_renderTargets[m_frameIndex].Get(),
+            D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+        m_commandList->ResourceBarrier(1, &barrier);
+        ThrowIfFailed(m_commandList->Close());
+
+        //PopulateCommandList();
+        ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+        m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+    }
+
+    void GpuInterface::SetRenderTarget(UINT numDesriptors, ID3D12DescriptorHeap* rtv, bool isSingleToRange, const D3D12_CPU_DESCRIPTOR_HANDLE* dsv)
+    {
+        CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtv->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
+        m_commandList->OMSetRenderTargets(numDesriptors, &rtvHandle, isSingleToRange , dsv);
+    }
+
+    void GpuInterface::ClearRenderTarget(ID3D12DescriptorHeap* rtv, float* clearColor)
+    {
+        CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtv->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
+        m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+    }
+
+    void GpuInterface::PresentSwapChain()
+    {
+        ThrowIfFailed(m_swapChain->Present(1, 0));
+        WaitForPreviousFrame();
+    }
+
+    void GpuInterface::GetHardwareAdapter(
+        _In_ IDXGIFactory1* pFactory,
+        _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter,
+        bool requestHighPerformanceAdapter)
     {
         *ppAdapter = nullptr;
 
@@ -207,13 +359,9 @@ namespace Ladybug3D::D3D12 {
 
                 if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 {
-                    // Don't select the Basic Render Driver adapter.
-                    // If you want a software adapter, pass in "/warp" on the command line.
                     continue;
                 }
 
-                // Check to see whether the adapter supports Direct3D 12, but don't create the
-                // actual device yet.
                 if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
                 {
                     break;
@@ -229,13 +377,8 @@ namespace Ladybug3D::D3D12 {
 
                 if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 {
-                    // Don't select the Basic Render Driver adapter.
-                    // If you want a software adapter, pass in "/warp" on the command line.
                     continue;
                 }
-
-                // Check to see whether the adapter supports Direct3D 12, but don't create the
-                // actual device yet.
                 if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
                 {
                     break;

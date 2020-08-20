@@ -24,7 +24,6 @@ namespace Ladybug3D {
 
         static std::function<void(HWND, UINT, WPARAM, LPARAM)> s_OnWndProc;
 
-
     private:
         HWND m_Handle;
         HINSTANCE m_Instance;

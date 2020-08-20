@@ -26,7 +26,7 @@ namespace Ladybug3D::D3D11 {
 
 	private:
 		void CreateDevice(HWND hwnd, UINT width, UINT height);
-		void CreateAdapters();
+		void InitializeAdapters();
 		void CreateMainRenderTarget();
 		void SetViewPort(UINT width, UINT height);
 

@@ -17,7 +17,7 @@ namespace Ladybug3D::D3D11 {
 	bool Device::Initialize(HWND hwnd, UINT width, UINT height)
 	{
 		try {
-			CreateAdapters();
+			InitializeAdapters();
 			CreateDevice(hwnd, width, height);
 			CreateMainRenderTarget();
 			SetViewPort(width, height);
@@ -68,7 +68,7 @@ namespace Ladybug3D::D3D11 {
 			"Failed to create device and swapchain.");
 	}
 
-	void Device::CreateAdapters()
+	void Device::InitializeAdapters()
 	{
 		ComPtr<IDXGIFactory> pFactory;
 
@@ -103,21 +103,3 @@ namespace Ladybug3D::D3D11 {
 		m_DeviceContext->RSSetViewports(1, &viewport);
 	}
 }
-
-
-
-//void DX11Resources::CreateBackBufferAndMainRTV(UINT width, UINT height)
-//{
-//	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-//	ThrowIfFailed(
-//		m_Swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf())),
-//		"GetBuffer Failed.");
-//
-//	ThrowIfFailed(
-//		m_Device->CreateRenderTargetView(backBuffer.Get(), NULL, this->m_MainRenderTargetView.GetAddressOf()),
-//		"Failed to create render target view.");
-//
-//	//뷰포트 만들기 & 세팅
-//	CD3D11_VIEWPORT viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
-//	m_DeviceContext->RSSetViewports(1, &viewport);
-//}
