@@ -2,12 +2,10 @@
 
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_impl_win32.h>
-//#include <ImGui/imgui_impl_dx11.h>
 #include <ImGui/imgui_impl_dx12.h>
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include <Util.hpp>
-#include <D3D11/D3D11_GpuInterface.hpp>
 #include <D3D12/D3D12_GpuInterface.hpp>
 #include <WindowContainer.hpp>
 
@@ -29,22 +27,16 @@ int main()
     wc.Show();
 
     Ladybug3D::D3D12::GpuInterface gi;
-    //Ladybug3D::D3D11::GpuInterface gi;
     if (!gi.Initialize(wc.GetHandle(), 1280, 800)) {
         wc.Destroy();
         return 1;
     }
 
-    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-
-    // Setup Dear ImGui style
     ImGui::StyleColorsDark();
 
-    // Setup Platform/Renderer bindings
     ImGui_ImplWin32_Init(wc.GetHandle());
-    //ImGui_ImplDX11_Init(gi.GetDeivce(), gi.GetDeviceContext());
     ImGui_ImplDX12_Init(
         gi.GetDevice(), 
         Ladybug3D::D3D12::FRAME_COUNT,
@@ -61,7 +53,6 @@ int main()
     // Main loop
     while (wc.Tick()) {
         // Start the Dear ImGui frame
-        //ImGui_ImplDX11_NewFrame();
         ImGui_ImplDX12_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
@@ -107,11 +98,8 @@ int main()
         gi.RenderBegin();
         gi.SetRenderTarget(1, gi.GetRtvDescriptorHeap(), false, nullptr);
         gi.ClearRenderTarget(gi.GetRtvDescriptorHeap(), (float*)&clear_color);
-        //gi.SetRenderTarget(1, gi.GetMainRenderTargetAddr(), nullptr);
-        //gi.ClearRenderTargetView(gi.GetMainRenderTarget(), (float*)&clear_color);
         gi.GetCommandList()->SetDescriptorHeaps(1, gi.GetSrvDescriptorHeapAddr());
         ImGui::Render();
-        //ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), gi.GetCommandList());
         gi.RenderEnd();
         gi.PresentSwapChain();

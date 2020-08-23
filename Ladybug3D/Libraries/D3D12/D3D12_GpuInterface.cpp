@@ -40,7 +40,7 @@ namespace Ladybug3D::D3D12 {
             }
         }
         catch (HrException& e) {
-            cout << HrToString(e.Error()) << endl;
+            cout << e.what() << endl;
             return false;
         }
         return true;
@@ -267,6 +267,7 @@ namespace Ladybug3D::D3D12 {
 
         ThrowIfFailed(m_commandList->Close());
 	}
+
 	void GpuInterface::WaitForPreviousFrame()
 	{
         const UINT64 fence = m_fenceValue;
