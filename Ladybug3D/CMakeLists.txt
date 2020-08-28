@@ -13,18 +13,18 @@ link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 link_libraries(imgui)
 link_libraries(d3d12)
 link_libraries(Ladybug3D_D3D12)
-link_libraries(Ladybug3D_Engine)
+link_libraries(Ladybug3D_Renderer)
 
 # Sources
-file(GLOB headers
+file(GLOB HeadFiles
     ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
-file(GLOB sources
+file(GLOB SourceFiles
 	${CMAKE_CURRENT_SOURCE_DIR}/Script/*.cpp)
 
 # Build exe
 add_executable(${target}
-	${headers}
-	${sources})
+	${HeadFiles}
+	${SourceFiles})
 
 # Project options
 set_target_properties(${target}

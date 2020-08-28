@@ -44,8 +44,6 @@ namespace Ladybug3D::D3D12 {
 		void CreateSwapChain(HWND hwnd);
 
 		void LoadPipeline(HWND hwnd);
-		void LoadAssets();
-		void PopulateCommandList();
 		void WaitForPreviousFrame();
 
 		

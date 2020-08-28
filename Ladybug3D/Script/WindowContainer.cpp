@@ -2,15 +2,48 @@
 
 namespace Ladybug3D {
 
+    std::function<void(HWND, UINT, WPARAM, LPARAM)> WindowContainer::s_OnWndProc = [](HWND, UINT, WPARAM, LPARAM) {};
+    std::function<void()> WindowContainer::s_OnPaint = [](){};
+    std::function<void(UINT, UINT)> WindowContainer::s_OnResize = [](UINT, UINT) {};
+    std::function<void()> WindowContainer::s_OnFullScreen = []() {};
+
+    WindowContainer* WindowContainer::s_Singleton = nullptr;
+
     LRESULT WINAPI WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
-        if (WindowContainer::s_OnWndProc) {
-            WindowContainer::s_OnWndProc(hwnd, msg, wParam, lParam);
+        WindowContainer::s_OnWndProc(hwnd, msg, wParam, lParam);
+        WindowContainer::s_OnPaint();
+        switch (msg)
+        {
+        case WM_PAINT: break;
+        case WM_SYSKEYDOWN:
+        case WM_KEYDOWN:
+        {
+            //bool alt = (::GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+
+            switch (wParam)
+            {
+            case VK_ESCAPE: ::PostQuitMessage(0); break;
+            case VK_RETURN: break;
+            case VK_F11: WindowContainer::s_Singleton->ToggleFullScreen();  break;
+            }
+            break;
+        }
+        case WM_SIZE:
+        {
+            RECT clientRect = {};
+            ::GetClientRect(WindowContainer::s_Singleton->GetHandle(), &clientRect);
+
+            int width = max(1u, clientRect.right - clientRect.left);
+            int height = max(1u, clientRect.bottom - clientRect.top);
+            WindowContainer::s_OnResize(width, height);
+            break;
+        }
+        case WM_DESTROY: ::PostQuitMessage(0); break;
         }
         return ::DefWindowProc(hwnd, msg, wParam, lParam);
     }
 
-    std::function<void(HWND, UINT, WPARAM, LPARAM)> WindowContainer::s_OnWndProc;
 
     bool WindowContainer::Create(
         const char* title, 
@@ -18,6 +51,7 @@ namespace Ladybug3D {
         UINT width,
         UINT height) 
     {
+        s_Singleton = this;
         m_WindowTitle = title;
         m_WindowClassName = className;
         m_Width = width;
@@ -72,6 +106,7 @@ namespace Ladybug3D {
     }
     void WindowContainer::Show()
     {
+        ::GetWindowRect(m_Handle, &m_WindowRect);
         ::ShowWindow(m_Handle, SW_SHOWDEFAULT);
         ::UpdateWindow(m_Handle);
         ::SetFocus(m_Handle);
@@ -86,16 +121,60 @@ namespace Ladybug3D {
             ::TranslateMessage(&msg);
             ::DispatchMessage(&msg);
 
-            if (msg.message == WM_QUIT)
+            if (msg.message == WM_QUIT) {
                 return false;
+            }
         }
-
         return true;
     }
     void WindowContainer::Destroy()
     {
         ::DestroyWindow(m_Handle);
         ::UnregisterClass(m_WindowClassName.c_str(), m_Instance);
+    }
+
+
+    void WindowContainer::ToggleFullScreen()
+    {
+        m_IsFullScreen = !m_IsFullScreen;
+
+        // Switching to isFullscreen.
+        if (m_IsFullScreen) 
+        {
+            ::GetWindowRect(m_Handle, &m_WindowRect);
+
+            UINT windowStyle = WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+
+            ::SetWindowLongW(m_Handle, GWL_STYLE, windowStyle);
+
+            HMONITOR hMonitor = ::MonitorFromWindow(m_Handle, MONITOR_DEFAULTTONEAREST);
+            MONITORINFOEX monitorInfo = {};
+            monitorInfo.cbSize = sizeof(MONITORINFOEX);
+            ::GetMonitorInfo(hMonitor, &monitorInfo);
+
+            ::SetWindowPos(m_Handle, HWND_TOP,
+                monitorInfo.rcMonitor.left,
+                monitorInfo.rcMonitor.top,
+                monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+                monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
+                SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+            ::ShowWindow(m_Handle, SW_MAXIMIZE);
+        }
+        else
+        {
+            // Restore all the window decorators.
+            ::SetWindowLong(m_Handle, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+
+            ::SetWindowPos(m_Handle, HWND_NOTOPMOST,
+                m_WindowRect.left,
+                m_WindowRect.top,
+                m_WindowRect.right - m_WindowRect.left,
+                m_WindowRect.bottom - m_WindowRect.top,
+                SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+            ::ShowWindow(m_Handle, SW_NORMAL);
+        }
     }
 }
 
