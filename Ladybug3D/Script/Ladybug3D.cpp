@@ -11,42 +11,33 @@
 #include <Renderer/Renderer.hpp>
 
 using namespace std;
-
+using namespace Ladybug3D;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-bool g_FullScreenSignal = false;
-UINT g_Width;
-UINT g_Height;
 
 int main()
 {
-    Ladybug3D::Util::PrintHello();
+    Util::PrintHello();
     
-    Ladybug3D::WindowContainer windowContainer;
+    auto& windowContainer =  WindowContainer::GetInstance();
     windowContainer.Create("Hellow Ladybug3D", "Ladybug3D", 1280, 800);
     windowContainer.Show();
 
-    Ladybug3D::Renderer::Renderer renderer;
+    Renderer::Renderer renderer;
     if (!renderer.Initialize(windowContainer.GetHandle(), 1280, 800)) {
         windowContainer.Destroy();
         return 1;
     }
 
-    Ladybug3D::WindowContainer::s_OnWndProc = [](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    windowContainer.SetWndProcCallback([](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
         ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
-    };
-    Ladybug3D::WindowContainer::s_OnResize = [&renderer](UINT width, UINT height)
+    });
+    windowContainer.SetWndResizeCallback([&renderer](UINT width, UINT height)
     {
-        g_Width = width;
-        g_Height = height;
-        g_FullScreenSignal = true;
-    };
+        renderer.ResizeSwapChainBuffer(width, height);
+    });
 
     while (windowContainer.Tick()) {
-        if (g_FullScreenSignal) {
-            g_FullScreenSignal = false;
-            renderer.ResizeSwapChainBuffer(g_Width, g_Height);
-        }
         renderer.Render();
     }
    

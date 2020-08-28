@@ -2,43 +2,24 @@
 
 namespace Ladybug3D {
 
-    std::function<void(HWND, UINT, WPARAM, LPARAM)> WindowContainer::s_OnWndProc = [](HWND, UINT, WPARAM, LPARAM) {};
-    std::function<void()> WindowContainer::s_OnPaint = [](){};
-    std::function<void(UINT, UINT)> WindowContainer::s_OnResize = [](UINT, UINT) {};
-    std::function<void()> WindowContainer::s_OnFullScreen = []() {};
-
-    WindowContainer* WindowContainer::s_Singleton = nullptr;
-
     LRESULT WINAPI WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
-        WindowContainer::s_OnWndProc(hwnd, msg, wParam, lParam);
-        WindowContainer::s_OnPaint();
+        WindowContainer::GetInstance().m_OnWindowProcedure(hwnd, msg, wParam, lParam);
         switch (msg)
         {
         case WM_PAINT: break;
         case WM_SYSKEYDOWN:
         case WM_KEYDOWN:
         {
-            //bool alt = (::GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
-
             switch (wParam)
             {
             case VK_ESCAPE: ::PostQuitMessage(0); break;
             case VK_RETURN: break;
-            case VK_F11: WindowContainer::s_Singleton->ToggleFullScreen();  break;
+            case VK_F11: WindowContainer::GetInstance().ToggleFullScreen();  break;
             }
             break;
         }
-        case WM_SIZE:
-        {
-            RECT clientRect = {};
-            ::GetClientRect(WindowContainer::s_Singleton->GetHandle(), &clientRect);
-
-            int width = max(1u, clientRect.right - clientRect.left);
-            int height = max(1u, clientRect.bottom - clientRect.top);
-            WindowContainer::s_OnResize(width, height);
-            break;
-        }
+        case WM_SIZE: WindowContainer::GetInstance().ResizeWindow(); break;
         case WM_DESTROY: ::PostQuitMessage(0); break;
         }
         return ::DefWindowProc(hwnd, msg, wParam, lParam);
@@ -51,7 +32,6 @@ namespace Ladybug3D {
         UINT width,
         UINT height) 
     {
-        s_Singleton = this;
         m_WindowTitle = title;
         m_WindowClassName = className;
         m_Width = width;
@@ -129,6 +109,8 @@ namespace Ladybug3D {
     }
     void WindowContainer::Destroy()
     {
+        m_OnWindowProcedure = [](HWND, UINT, WPARAM, LPARAM) {};
+        m_OnWindowResize = [](UINT, UINT) {};
         ::DestroyWindow(m_Handle);
         ::UnregisterClass(m_WindowClassName.c_str(), m_Instance);
     }
@@ -175,6 +157,19 @@ namespace Ladybug3D {
 
             ::ShowWindow(m_Handle, SW_NORMAL);
         }
+    }
+    void WindowContainer::ResizeWindow()
+    {
+        RECT clientRect;
+        ::GetClientRect(m_Handle, &clientRect);
+       
+        int width = max(1u, clientRect.right - clientRect.left);
+        int height = max(1u, clientRect.bottom - clientRect.top);
+        if (width == m_Width && height == m_Height) return;
+
+        m_Width = width;
+        m_Height = height;
+        WindowContainer::GetInstance().m_OnWindowResize(m_Width, m_Height);
     }
 }
 

@@ -72,7 +72,6 @@ namespace Ladybug3D::Renderer {
 
 		UINT m_rtvDescriptorSize;
 
-		// Synchronization objects.
 		UINT m_FrameIndex;
 
 		UINT m_Width;

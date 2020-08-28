@@ -32,7 +32,7 @@ namespace Ladybug3D::Renderer {
 		try {
 			m_Width = width;
 			m_Height = height;
-			m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+			m_aspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height);
 
 			LoadPipeline(hwnd);
 
@@ -68,6 +68,7 @@ namespace Ladybug3D::Renderer {
 
 		m_Width = max(1u, width);
 		m_Height = max(1u, height);
+		m_aspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height);
 
 		ClearMainRTV();
 

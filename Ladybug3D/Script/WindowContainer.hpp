@@ -2,10 +2,13 @@
 #include <Windows.h>
 #include <functional>
 #include <string>
+#include "Singleton.hpp"
 
 namespace Ladybug3D {
 	
-    class WindowContainer {
+    class WindowContainer : public Singleton<WindowContainer> {
+        friend LRESULT WINAPI WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
     public:
         bool Create(
             const char* title,
@@ -15,21 +18,21 @@ namespace Ladybug3D {
         void Show();
         bool Tick();
         void Destroy();
-        void ToggleFullScreen();
 
         HWND GetHandle() { return m_Handle; }
-        HINSTANCE GetInstance() { return m_Instance; }
+        HINSTANCE GetWindowInstance() { return m_Instance; }
 
         UINT GetWidth() const { return m_Width; }
         UINT GetHeight() const { return m_Height; }
 
-        static std::function<void(HWND, UINT, WPARAM, LPARAM)> s_OnWndProc;
-        static std::function<void()> WindowContainer::s_OnPaint;
-        static std::function<void(UINT, UINT)> WindowContainer::s_OnResize;
-        static std::function<void()> WindowContainer::s_OnFullScreen;
-        static WindowContainer* s_Singleton;
+        template<typename T>
+        void SetWndProcCallback(T& callback) { m_OnWindowProcedure = callback; }
+        template<typename T>
+        void SetWndResizeCallback(T& callback) { m_OnWindowResize = callback; }
 
     private:
+        void ToggleFullScreen();
+        void ResizeWindow();
 
         HWND m_Handle;
         HINSTANCE m_Instance;
@@ -41,5 +44,8 @@ namespace Ladybug3D {
 
         RECT m_WindowRect;
         bool m_IsFullScreen = false;
+
+        std::function<void(HWND, UINT, WPARAM, LPARAM)> m_OnWindowProcedure = [](HWND, UINT, WPARAM, LPARAM) {};
+        std::function<void(UINT, UINT)> WindowContainer::m_OnWindowResize = [](UINT, UINT) {};
     };
 }
