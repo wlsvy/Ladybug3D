@@ -11,10 +11,9 @@ include_directories(${THIRD_PARTY_DIRECTORY})
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 link_libraries(imgui)
-link_libraries(d3d11)
-link_libraries(Ladybug3D_D3D11)
 link_libraries(d3d12)
 link_libraries(Ladybug3D_D3D12)
+link_libraries(Ladybug3D_Engine)
 
 # Sources
 file(GLOB headers
@@ -24,6 +23,7 @@ file(GLOB sources
 
 # Build exe
 add_executable(${target}
+	${headers}
 	${sources})
 
 # Project options

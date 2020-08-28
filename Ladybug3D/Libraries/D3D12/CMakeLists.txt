@@ -6,11 +6,14 @@ link_libraries(d3d12)
 link_libraries(DXGI)
 
 # Sources
+file(GLOB headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 file(GLOB sources
     ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 # Build library
 add_library(${target}
+    ${headers}
     ${sources})
 
 # Project options
