@@ -115,7 +115,6 @@ namespace Ladybug3D {
         ::UnregisterClass(m_WindowClassName.c_str(), m_Instance);
     }
 
-
     void WindowContainer::ToggleFullScreen()
     {
         m_IsFullScreen = !m_IsFullScreen;

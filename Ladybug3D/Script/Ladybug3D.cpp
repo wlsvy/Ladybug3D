@@ -6,7 +6,6 @@
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include <Util.hpp>
-#include <D3D12/D3D12_GpuInterface.hpp>
 #include <WindowContainer.hpp>
 #include <Renderer/Renderer.hpp>
 

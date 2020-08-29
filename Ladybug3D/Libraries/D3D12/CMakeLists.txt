@@ -1,8 +1,12 @@
 # Target name
 set(target Ladybug3D_D3D12)
 
+#include
+include_directories(${THIRD_PARTY_DIRECTORY})
+
 # Link Library
 link_libraries(d3d12)
+link_libraries(Direct12XTK)
 link_libraries(DXGI)
 
 # Sources

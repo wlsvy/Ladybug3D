@@ -21,6 +21,7 @@ set(THIRD_PARTY_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Ladybug3D/ThirdParty)
 
 # 하위 프로젝트를 포함합니다.
 add_subdirectory(${THIRD_PARTY_DIRECTORY}/imgui)
+add_subdirectory(${THIRD_PARTY_DIRECTORY}/Direct12XTK)
 add_subdirectory(${LIBRARY_DIRECTORY}/D3D12)
 add_subdirectory(${LIBRARY_DIRECTORY}/Renderer)
 add_subdirectory(Ladybug3D)

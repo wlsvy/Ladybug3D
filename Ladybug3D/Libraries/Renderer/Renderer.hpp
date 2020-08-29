@@ -18,6 +18,8 @@ struct CD3DX12_CPU_DESCRIPTOR_HANDLE;
 
 namespace Ladybug3D::D3D12 {
 	class GraphicsCommandList;
+	class DescriptorHeapAllocator;
+	class Texture;
 }
 
 namespace Ladybug3D::Renderer {
@@ -59,12 +61,15 @@ namespace Ladybug3D::Renderer {
 		void ShutDownImGui();
 
 		std::unique_ptr<Ladybug3D::D3D12::GraphicsCommandList> m_GraphicsCommandList;
+		std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_TextureDescriptorHeap;
+		std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_MainRTVDescriptorHeap;
+		std::unique_ptr<Ladybug3D::D3D12::Texture> m_SampleTexture;
 
 		Microsoft::WRL::ComPtr<IDXGIAdapter4> m_Adapter;
 		Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;
-		Microsoft::WRL::ComPtr<ID3D12Device> m_device;
+		Microsoft::WRL::ComPtr<ID3D12Device> m_Device;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[SWAPCHAIN_BUFFER_COUNT];
-		Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
+		Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_CommandQueue;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_ImguiSrvHeap;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;

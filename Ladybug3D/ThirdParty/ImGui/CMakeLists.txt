@@ -3,7 +3,7 @@ set(target imgui)
 
 # Sources
 file(GLOB headers
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 file(GLOB sources
     ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 

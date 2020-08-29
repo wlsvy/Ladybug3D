@@ -1,7 +1,8 @@
 #include "Renderer.hpp"
 #include <iostream>
 #include <algorithm>
-#include <Windows.h>
+#include <filesystem>
+
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <sal.h>
@@ -9,6 +10,10 @@
 #include <D3D12/d3dx12.h>
 #include <D3D12/D3D12_Util.hpp>
 #include <D3D12/D3D12_CommandList.hpp>
+#include <D3D12/D3D12_DescriptorHeapAllocator.hpp>
+#include <D3D12/D3D12_Texture.hpp>
+
+#include <Direct12XTK/Include/ResourceUploadBatch.h>
 
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_impl_dx12.h>
@@ -36,7 +41,11 @@ namespace Ladybug3D::Renderer {
 
 			LoadPipeline(hwnd);
 
-			m_GraphicsCommandList = make_unique<GraphicsCommandList>(m_device.Get());
+			m_GraphicsCommandList = make_unique<GraphicsCommandList>(m_Device.Get());
+			m_MainRTVDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, SWAPCHAIN_BUFFER_COUNT);
+			m_TextureDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+			LoadAssets();
+			
 			InitImGui(hwnd);
 		}
 		catch (exception& e) {
@@ -184,7 +193,7 @@ namespace Ladybug3D::Renderer {
 
 		ImGui_ImplWin32_Init(hwnd);
 		ImGui_ImplDX12_Init(
-			m_device.Get(),
+			m_Device.Get(),
 			SWAPCHAIN_BUFFER_COUNT,
 			DXGI_FORMAT_R8G8B8A8_UNORM,
 			m_ImguiSrvHeap.Get(),
@@ -195,11 +204,11 @@ namespace Ladybug3D::Renderer {
 	void Renderer::CreateDevice(IDXGIAdapter4* adapter)
 	{
 		ComPtr<ID3D12Device2> d3d12Device2;
-		ThrowIfFailed(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(m_device.GetAddressOf())));
+		ThrowIfFailed(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(m_Device.GetAddressOf())));
 
 #if defined(_DEBUG)
 		ComPtr<ID3D12InfoQueue> pInfoQueue;
-		if (SUCCEEDED(m_device.As(&pInfoQueue)))
+		if (SUCCEEDED(m_Device.As(&pInfoQueue)))
 		{
 			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
 			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
@@ -233,7 +242,7 @@ namespace Ladybug3D::Renderer {
 		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-		ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
+		ThrowIfFailed(m_Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_CommandQueue)));
 	}
 
 	void Renderer::CreateSwapChain(HWND hwnd)
@@ -257,7 +266,7 @@ namespace Ladybug3D::Renderer {
 
 		ComPtr<IDXGISwapChain1> swapChain1;
 		ThrowIfFailed(factory4->CreateSwapChainForHwnd(
-			m_commandQueue.Get(),
+			m_CommandQueue.Get(),
 			hwnd,
 			&swapChainDesc,
 			nullptr,
@@ -276,7 +285,7 @@ namespace Ladybug3D::Renderer {
 		for (UINT n = 0; n < SWAPCHAIN_BUFFER_COUNT; n++)
 		{
 			ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargets[n])));
-			m_device->CreateRenderTargetView(m_renderTargets[n].Get(), nullptr, rtvHandle);
+			m_Device->CreateRenderTargetView(m_renderTargets[n].Get(), nullptr, rtvHandle);
 			rtvHandle.Offset(1, m_rtvDescriptorSize);
 		}
 	}
@@ -303,22 +312,34 @@ namespace Ladybug3D::Renderer {
 			desc.NumDescriptors = SWAPCHAIN_BUFFER_COUNT;
 			desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 			desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-			ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_rtvHeap)));
+			ThrowIfFailed(m_Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_rtvHeap)));
 
-			m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+			m_rtvDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		}
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 			desc.NumDescriptors = 1;
 			desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 			desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-			ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_ImguiSrvHeap)));
+			ThrowIfFailed(m_Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_ImguiSrvHeap)));
 		}
 
 		CreateMainRTV();
 	}
 
 	void Renderer::LoadAssets() {
+
+		DirectX::ResourceUploadBatch uploadBatch(m_Device.Get());
+		uploadBatch.Begin();
+
+		filesystem::path p = filesystem::current_path();
+		cout << "Renderer.cpp Path : " << filesystem::current_path() << endl;
+		m_SampleTexture = make_unique<Texture>();
+		m_SampleTexture->InitializeWICTexture(L"../../Resources/Texture/Sample.png", uploadBatch, m_Device.Get(), m_TextureDescriptorHeap->GetCpuHandle());
+
+		auto finish = uploadBatch.End(m_CommandQueue.Get());
+		finish.wait();
+		
 		// Create the pipeline state, which includes compiling and loading shaders.
 		//{
 		//	struct
@@ -368,7 +389,7 @@ namespace Ladybug3D::Renderer {
 		auto fenceValue = m_GraphicsCommandList->GetAndIncreaseFenceValue();
 		auto fenceEvent = m_GraphicsCommandList->GetFenceEvent();
 
-		ThrowIfFailed(m_commandQueue->Signal(fence, fenceValue));
+		ThrowIfFailed(m_CommandQueue->Signal(fence, fenceValue));
 		if (fence->GetCompletedValue() < fenceValue)
 		{
 			ThrowIfFailed(fence->SetEventOnCompletion(fenceValue, fenceEvent));
@@ -404,7 +425,7 @@ namespace Ladybug3D::Renderer {
 		m_GraphicsCommandList->EndRenderPass();
 
 		ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 	void Renderer::Pass_Gui()
 	{
@@ -430,7 +451,7 @@ namespace Ladybug3D::Renderer {
 
 			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
 			ImGui::ColorEdit3("clear color", (float*)&clear_color);
-
+			
 			if (ImGui::Button("Button"))
 				counter++;
 			ImGui::SameLine();
