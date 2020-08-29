@@ -1,5 +1,6 @@
 #pragma once
 #include <wrl/client.h>
+#include <vector>
 #include <memory>
 
 struct IDXGIAdapter4;
@@ -32,14 +33,17 @@ namespace Ladybug3D::Renderer {
 		~Renderer();
 
 		bool Initialize(HWND hwnd, UINT width, UINT height);
+
+		void LoadAssetsBegin();
+		void LoadTexture(const wchar_t * filePath);
+		void LoadAssetsEnd();
+
 		void Render();
-		CD3DX12_CPU_DESCRIPTOR_HANDLE GetRtvHandle() const;
 
 		void ResizeSwapChainBuffer(UINT width, UINT height);
 		void ShutDown();
 
 	private:
-		void LoadPipeline(HWND hwnd);
 		void LoadAssets();
 
 		void CreateDevice(IDXGIAdapter4* adapter);
@@ -63,6 +67,7 @@ namespace Ladybug3D::Renderer {
 		std::unique_ptr<Ladybug3D::D3D12::GraphicsCommandList> m_GraphicsCommandList;
 		std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_TextureDescriptorHeap;
 		std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_MainRTVDescriptorHeap;
+		std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_ImGuiDescriptorHeap;
 		std::unique_ptr<Ladybug3D::D3D12::Texture> m_SampleTexture;
 
 		Microsoft::WRL::ComPtr<IDXGIAdapter4> m_Adapter;
@@ -70,12 +75,9 @@ namespace Ladybug3D::Renderer {
 		Microsoft::WRL::ComPtr<ID3D12Device> m_Device;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[SWAPCHAIN_BUFFER_COUNT];
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_CommandQueue;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_ImguiSrvHeap;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PipelineState;
-
-		UINT m_rtvDescriptorSize;
 
 		UINT m_FrameIndex;
 

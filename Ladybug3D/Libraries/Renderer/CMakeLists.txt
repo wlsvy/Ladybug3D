@@ -18,7 +18,6 @@ file(GLOB sources
     ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 # Build library
-# add_dependencies(Ladybug3D_D3D12, Ladybug3D_Renderer)
 add_library(${target}
     ${headers}
     ${sources})
@@ -28,3 +27,9 @@ set_target_properties(${target}
     PROPERTIES
     ${DEFAULT_PROJECT_OPTIONS}
 )
+
+#Add Definition
+target_compile_definitions(Ladybug3D_Renderer PRIVATE
+    NOMINMAX    
+	LADYBUG3D_ROOT_PATH="${BASE_DRIECTORY}"
+	LADYBUG3D_RESOURCE_PATH="${RESOURCE_DRIECTORY}")

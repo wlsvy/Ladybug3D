@@ -1,5 +1,5 @@
 #pragma once
-#include "D3D12_Define.h"
+#include "D3D12_Define.hpp"
 
 namespace Ladybug3D::D3D12 {
 	class Resource {

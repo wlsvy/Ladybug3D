@@ -28,19 +28,6 @@ namespace Ladybug3D::D3D12 {
 	{
 	}
 
-	CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeapAllocator::CopyDescriptor(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor, int offset)
-	{
-		offset = offset < 0 ? m_CurrnetDescriptorSize : offset;
-		if (offset >= m_NumDescriptors) {
-			throw std::length_error("Number of descriptors exceeds maxsize in the descriptor table.");
-		}
-
-		device->CopyDescriptorsSimple(1, GetCpuHandle(offset), cpuDescriptor, m_HeapType);
-		m_CurrnetDescriptorSize++;
-
-		return GetGpuHandle(offset);
-	}
-
 	CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeapAllocator::GetCpuHandle(int offset) const
 	{
 		return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_CPUDescriptorHandle, offset, m_HandleIncrementSize);
