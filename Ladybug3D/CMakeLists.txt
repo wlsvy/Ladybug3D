@@ -24,7 +24,8 @@ file(GLOB SourceFiles
 # Build exe
 add_executable(${target}
 	${HeadFiles}
-	${SourceFiles})
+	${SourceFiles}
+)
 
 # Project options
 set_target_properties(${target}

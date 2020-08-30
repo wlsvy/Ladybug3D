@@ -32,7 +32,12 @@ namespace Ladybug3D::D3D12 {
 	};
 
 	class VertexBuffer : public Resource {
+	public:
+		VertexBuffer(ID3D12Device* device);
+		~VertexBuffer();
 
+	private:
+		D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView;
 	};
 
 	class IndesBuffer : public Resource {

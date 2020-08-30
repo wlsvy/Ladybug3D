@@ -9,6 +9,11 @@
 #include <WindowContainer.hpp>
 #include <Renderer/Renderer.hpp>
 
+#include <Assimp/color4.h>
+#include <Assimp/Importer.hpp>
+#include <Assimp/postprocess.h>
+#include <Assimp/scene.h>
+
 using namespace std;
 using namespace Ladybug3D;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -19,6 +24,7 @@ struct alignas(32) Foo {
 
 int main()
 {
+    
     Util::PrintHello();
     cout << "size of 32byte aligned Foo : " << sizeof(Foo) << endl;
     auto& windowContainer =  WindowContainer::GetInstance();

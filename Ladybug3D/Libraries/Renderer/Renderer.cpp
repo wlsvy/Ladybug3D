@@ -19,6 +19,10 @@
 #include <ImGui/imgui_impl_dx12.h>
 #include <ImGui/imgui_impl_win32.h>
 
+#include <Assimp/color4.h>
+#include <Assimp/Importer.hpp>
+#include <Assimp/postprocess.h>
+#include <Assimp/scene.h>
 using namespace std;
 using namespace Microsoft::WRL;
 using namespace Ladybug3D::D3D12;
@@ -34,6 +38,7 @@ namespace Ladybug3D::Renderer {
 
 	bool Renderer::Initialize(HWND hwnd, UINT width, UINT height)
 	{
+		Assimp::Importer importer;
 		try {
 			m_Width = width;
 			m_Height = height;

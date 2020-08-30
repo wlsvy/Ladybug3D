@@ -4,12 +4,16 @@ set(target Ladybug3D_Renderer)
 #include / link
 include_directories(${LIBRARY_DIRECTORY})
 include_directories(${THIRD_PARTY_DIRECTORY})
+include_directories(${PRECOMPILED_LIBRARY_DIRECTORY}/Any)
+include_directories(${PRECOMPILED_LIBRARY_DIRECTORY}/x64/Debug)
+link_directories (${PRECOMPILED_LIBRARY_DIRECTORY}/x64/Debug)
 
 # Link Library
-link_libraries(d3d12)
-link_libraries(DXGI)
-link_libraries(imgui)
-link_libraries(Ladybug3D_D3D12)
+find_library(
+  ASSIMP
+  NAMES assimp-vc140-mt
+  HINTS ${PRECOMPILED_LIBRARY_DIRECTORY}/Any
+  REQUIRED)
 
 # Sources
 file(GLOB headers
@@ -22,10 +26,25 @@ add_library(${target}
     ${headers}
     ${sources})
 
+
+
+
+target_link_libraries(${target} PUBLIC
+    ${ASSIMP}
+    imgui
+    Ladybug3D_D3D12)
+#    ${PRECOMPILED_LIBRARY_DIRECTORY}/Any/assimp-vc140-mt.lib)
+
+
 # Project options
 set_target_properties(${target}
     PROPERTIES
     ${DEFAULT_PROJECT_OPTIONS}
+)
+
+target_compile_options(${target} PUBLIC 
+    /wd6001
+    /wd26495
 )
 
 #Add Definition
