@@ -5,10 +5,6 @@ namespace Ladybug3D::D3D12 {
 	Resource::Resource()
 	{
 	}
-	Resource::Resource(ID3D12Device* device)
-	{
-
-	}
 	Resource::~Resource()
 	{
 	}

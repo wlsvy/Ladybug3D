@@ -47,14 +47,17 @@ namespace Ladybug3D::Renderer {
 
 			m_GraphicsCommandList = make_unique<GraphicsCommandList>(m_Device.Get());
 			m_MainRTVDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, SWAPCHAIN_BUFFER_COUNT);
-			m_TextureDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 5);
+			m_ResourceDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 5);
 			m_ImGuiDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 3);
+			m_CbMatrix = make_unique<ConstantBuffer<CB_Matrix>>(m_Device.Get());
+			m_CbTest = make_unique<ConstantBuffer<CB_Test>>(m_Device.Get());
 			
 			CreateCommandQueue();
 			CreateSwapChain(hwnd);
 			CreateMainRTV();
+			CreateRootSignature();
 			LoadAssets();
-			
+			CreateResourceView();
 			InitImGui(hwnd);
 		}
 		catch (exception& e) {
@@ -69,6 +72,14 @@ namespace Ladybug3D::Renderer {
 		RenderBegin();
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 		m_GraphicsCommandList->ClearRenderTarget(m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex), m_ClearColor);
+
+		ID3D12DescriptorHeap* ppHeaps[] = { m_ResourceDescriptorHeap->GetDescriptorHeap() };
+		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootSignature(m_RootSignature.Get());
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(0, m_ResourceDescriptorHeap->GetGpuHandle(0));
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(1));
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(2, m_ResourceDescriptorHeap->GetGpuHandle(2));
+
 		Pass_Gui();
 		RenderEnd();
 		PresentSwapChain(true);
@@ -310,10 +321,9 @@ namespace Ladybug3D::Renderer {
 		m_SampleTexture = make_unique<Texture>();
 		m_SampleTexture->InitializeWICTexture(wstr.c_str(), uploadBatch, m_Device.Get());
 		auto finish = uploadBatch.End(m_CommandQueue.Get());
-		m_SampleTexture->CreateShaderResourceView(m_Device.Get(), m_ImGuiDescriptorHeap->GetCpuHandle(1));
-		m_SampleTexture->CreateShaderResourceView(m_Device.Get(), m_TextureDescriptorHeap->GetCpuHandle());
-		finish.wait();
 		
+		finish.wait();
+
 		// Create the pipeline state, which includes compiling and loading shaders.
 		//{
 		//	struct
@@ -384,6 +394,11 @@ namespace Ladybug3D::Renderer {
 		ImGui::DestroyContext();
 	}
 	
+	void Renderer::Update()
+	{
+		m_CbTest->Data->index++;
+	}
+
 	void Renderer::RenderBegin()
 	{
 		m_FrameIndex = m_swapChain->GetCurrentBackBufferIndex();
@@ -451,6 +466,52 @@ namespace Ladybug3D::Renderer {
 		ImGui::Render();
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsCommandList->GetCommandList());
 	}
+
+	void Renderer::CreateResourceView()
+	{
+		m_CbMatrix->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle());
+		m_CbTest->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(1));
+		m_SampleTexture->CreateShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(2));
+
+		m_SampleTexture->CreateShaderResourceView(m_Device.Get(), m_ImGuiDescriptorHeap->GetCpuHandle(1));
+	}
+
+	void Renderer::CreateRootSignature()
+	{
+		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = { D3D_ROOT_SIGNATURE_VERSION_1_1 };
+		if (FAILED(m_Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+		{
+			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+		}
+
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+
+		CD3DX12_ROOT_PARAMETER1 rootParameters[3];
+		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
+		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
+
+		CD3DX12_STATIC_SAMPLER_DESC samplerDesc[2];
+		samplerDesc[0].Init(0, D3D12_FILTER_ANISOTROPIC);
+		samplerDesc[1].Init(1, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR,
+			D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
+			D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
+			D3D12_TEXTURE_ADDRESS_MODE_MIRROR);
+
+		auto rootSignatureFlag = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, _countof(samplerDesc), samplerDesc, rootSignatureFlag);
+
+		ComPtr<ID3DBlob> signature;
+		ComPtr<ID3DBlob> error;
+		ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error));
+		ThrowIfFailed(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
+	}
+
 }
 
 

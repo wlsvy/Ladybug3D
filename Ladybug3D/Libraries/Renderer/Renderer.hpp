@@ -2,30 +2,21 @@
 #include <wrl/client.h>
 #include <vector>
 #include <memory>
-
-struct IDXGIAdapter4;
-struct IDXGISwapChain3;
-struct ID3D12Device;
-struct ID3D12Resource;
-struct ID3D12CommandAllocator;
-struct ID3D12CommandQueue;
-struct ID3D12DescriptorHeap;
-struct ID3D12PipelineState;
-struct ID3D12CommandList;
-struct ID3D12GraphicsCommandList;
-struct ID3D12Fence;
-struct ID3D12PipelineState;
-struct CD3DX12_CPU_DESCRIPTOR_HANDLE;
-
-namespace Ladybug3D::D3D12 {
-	class GraphicsCommandList;
-	class DescriptorHeapAllocator;
-	class Texture;
-}
+#include <DirectXMath.h>
+#include <D3D12/D3D12_Define.hpp>
 
 namespace Ladybug3D::Renderer {
 
 	constexpr UINT SWAPCHAIN_BUFFER_COUNT = 2;
+
+	struct alignas(256) CB_Matrix {
+		DirectX::XMFLOAT4X4 model;
+		DirectX::XMFLOAT4X4 viewProj;
+		DirectX::XMFLOAT4X4 prevMvp;
+	}; 
+	struct alignas(256) CB_Test {
+		UINT index;
+	};
 
 	class Renderer {
 	public:
@@ -50,10 +41,13 @@ namespace Ladybug3D::Renderer {
 		void CreateCommandQueue();
 		void CreateSwapChain(HWND hwnd);
 		void CreateMainRTV();
+		void CreateResourceView();
 		void GetDebugInterface();
 		void GetAdapters(bool useWarp);
 		void InitImGui(HWND hwnd);
+		void CreateRootSignature();
 
+		void Update();
 		void RenderBegin();
 		void RenderEnd();
 		void Pass_Gui();
@@ -65,10 +59,12 @@ namespace Ladybug3D::Renderer {
 		void ShutDownImGui();
 
 		std::unique_ptr<Ladybug3D::D3D12::GraphicsCommandList> m_GraphicsCommandList;
-		std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_TextureDescriptorHeap;
+		std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_ResourceDescriptorHeap;
 		std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_MainRTVDescriptorHeap;
 		std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_ImGuiDescriptorHeap;
 		std::unique_ptr<Ladybug3D::D3D12::Texture> m_SampleTexture;
+		std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_Matrix>> m_CbMatrix;
+		std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_Test>> m_CbTest;
 
 		Microsoft::WRL::ComPtr<IDXGIAdapter4> m_Adapter;
 		Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;
@@ -78,11 +74,12 @@ namespace Ladybug3D::Renderer {
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_ImguiSrvHeap;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PipelineState;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
 
 		UINT m_FrameIndex;
 
-		UINT m_Width;
-		UINT m_Height;
+		UINT m_Width = 0;
+		UINT m_Height = 0;
 		float m_aspectRatio;
 
 		bool m_useWarpDevice;

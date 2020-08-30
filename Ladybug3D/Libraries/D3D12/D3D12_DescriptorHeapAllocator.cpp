@@ -22,6 +22,7 @@ namespace Ladybug3D::D3D12 {
 		m_CPUDescriptorHandle = m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 		m_GPUDescriptorHandle = m_DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 		m_HandleIncrementSize = device->GetDescriptorHandleIncrementSize(m_HeapType);
+		//m_DescriptorHeap->SetName(L"DescriptorHeap");
 	}
 
 	DescriptorHeapAllocator::~DescriptorHeapAllocator()
