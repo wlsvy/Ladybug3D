@@ -17,7 +17,7 @@ link_libraries(Ladybug3D_Renderer)
 
 # Sources
 file(GLOB HeadFiles
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/Script/*.hpp)
 file(GLOB SourceFiles
 	${CMAKE_CURRENT_SOURCE_DIR}/Script/*.cpp)
 

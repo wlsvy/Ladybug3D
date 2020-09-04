@@ -2,9 +2,11 @@
 #include "D3D12_Resource.hpp"
 #include <d3d12.h>
 #include "d3dx12.h"
+#include <vector>
 
 namespace DirectX {
 	class ResourceUploadBatch;
+	class VertexPositionNormalTexture;
 }
 
 namespace Ladybug3D::D3D12 {
@@ -33,7 +35,9 @@ namespace Ladybug3D::D3D12 {
 
 	class VertexBuffer : public Resource {
 	public:
-		VertexBuffer(ID3D12Device* device);
+		using Vertex = DirectX::VertexPositionNormalTexture;
+
+		VertexBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<Vertex>& vertices);
 		~VertexBuffer();
 
 	private:
@@ -41,7 +45,13 @@ namespace Ladybug3D::D3D12 {
 	};
 
 	class IndesBuffer : public Resource {
+	public:
+		IndesBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<UINT>& indices);
+		~IndesBuffer();
 
+	private:
+		D3D12_INDEX_BUFFER_VIEW m_IndexBufferView;
+		UINT m_NumIndices;
 	};
 
 	class Shader {
