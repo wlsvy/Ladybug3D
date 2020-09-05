@@ -1,6 +1,8 @@
 #pragma once
+#include "D3D12_Define.hpp"
 #include "D3D12_Resource.hpp"
 #include <d3d12.h>
+#include <DirectXMath.h>
 #include "d3dx12.h"
 #include <vector>
 
@@ -24,6 +26,14 @@ namespace Ladybug3D::D3D12 {
 	private:
 	};
 
+	struct Vertex {
+		DirectX::XMFLOAT3 pos = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+		DirectX::XMFLOAT3 normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+		DirectX::XMFLOAT2 uv = DirectX::XMFLOAT2(0.0f, 0.0f);
+		DirectX::XMFLOAT4 tangent = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	};
+
+
 	template<typename T>
 	class ConstantBuffer : public Resource {
 	public:
@@ -33,25 +43,27 @@ namespace Ladybug3D::D3D12 {
 		T* Data;
 	};
 
+
 	class VertexBuffer : public Resource {
 	public:
-		using Vertex = DirectX::VertexPositionNormalTexture;
-
 		VertexBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<Vertex>& vertices);
 		~VertexBuffer();
 
 	private:
 		D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_BufferUploadHeap;
 	};
 
-	class IndesBuffer : public Resource {
+	class IndexBuffer : public Resource {
 	public:
-		IndesBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<UINT>& indices);
-		~IndesBuffer();
+		IndexBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<UINT>& indices);
+		~IndexBuffer();
 
 	private:
 		D3D12_INDEX_BUFFER_VIEW m_IndexBufferView;
 		UINT m_NumIndices;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_BufferUploadHeap;
+
 	};
 
 	class Shader {

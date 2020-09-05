@@ -5,9 +5,13 @@
 #include <DirectXMath.h>
 #include <D3D12/D3D12_Define.hpp>
 
+#include "Mesh.hpp"
+
 namespace Ladybug3D::Renderer {
 
 	constexpr UINT SWAPCHAIN_BUFFER_COUNT = 2;
+
+	class Model;
 
 	struct alignas(256) CB_Matrix {
 		DirectX::XMFLOAT4X4 model;
@@ -65,6 +69,8 @@ namespace Ladybug3D::Renderer {
 		std::unique_ptr<Ladybug3D::D3D12::Texture> m_SampleTexture;
 		std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_Matrix>> m_CbMatrix;
 		std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_Test>> m_CbTest;
+		
+		std::vector<Model> m_Models;
 
 		Microsoft::WRL::ComPtr<IDXGIAdapter4> m_Adapter;
 		Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;

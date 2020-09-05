@@ -1,6 +1,7 @@
 #pragma once
 #include <wrl/client.h>
 
+struct ID3D12Object;
 struct IDXGIAdapter4;
 struct IDXGISwapChain3;
 struct ID3D12Device;
@@ -22,12 +23,16 @@ struct D3D12_GPU_DESCRIPTOR_HANDLE;
 using SIZE_T = unsigned __int64;
 using UINT = unsigned int;
 using UINT64 = unsigned long long;
+using LPCWSTR = const wchar_t*;
 
 namespace Ladybug3D::D3D12 {
 	class Resource;
 	class GraphicsCommandList;
 	class DescriptorHeapAllocator;
 	class Texture;
+	class VertexBuffer;
+	class IndexBuffer;
+	struct Vertex;
 
 	template<typename T>
 	class ConstantBuffer;

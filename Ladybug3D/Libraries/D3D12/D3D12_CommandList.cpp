@@ -25,14 +25,14 @@ namespace Ladybug3D::D3D12 {
 	{
 	}
 
-	bool GraphicsCommandList::BeginRenderPass(ID3D12PipelineState* pipelineState)
+	bool GraphicsCommandList::Begin(ID3D12PipelineState* pipelineState)
 	{
 		ThrowIfFailed(m_CommandAllocator->Reset());
 		ThrowIfFailed(m_CommandList->Reset(m_CommandAllocator.Get(), pipelineState));
 		return true;
 	}
 
-	void GraphicsCommandList::EndRenderPass()
+	void GraphicsCommandList::Close()
 	{
 		ThrowIfFailed(m_CommandList->Close());
 	}

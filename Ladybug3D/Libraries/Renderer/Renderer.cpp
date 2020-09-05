@@ -1,4 +1,5 @@
 #include "Renderer.hpp"
+#include "Mesh.hpp"
 #include <iostream>
 #include <algorithm>
 #include <filesystem>
@@ -23,6 +24,8 @@
 #include <Assimp/Importer.hpp>
 #include <Assimp/postprocess.h>
 #include <Assimp/scene.h>
+
+
 using namespace std;
 using namespace Microsoft::WRL;
 using namespace Ladybug3D::D3D12;
@@ -313,21 +316,46 @@ namespace Ladybug3D::Renderer {
 		uploadBatch.Begin();
 
 		string textureDir = LADYBUG3D_RESOURCE_PATH;
-		textureDir += "/Texture";
 		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
-			cout <<"Find File At : " << resource << " " << resource.path().extension() << endl;
 			if (resource.path().extension() == ".png") {
 				cout << "Find Texture At " << resource << endl;
 			}
 		}
 
-		textureDir += "/Sample.png";
+		textureDir += "/Texture/Sample.png";
 		wstring wstr(textureDir.begin(), textureDir.end());
 		m_SampleTexture = make_unique<Texture>();
 		m_SampleTexture->InitializeWICTexture(wstr.c_str(), uploadBatch, m_Device.Get());
 		auto finish = uploadBatch.End(m_CommandQueue.Get());
-		
 		finish.wait();
+
+
+		m_GraphicsCommandList->Begin();
+		m_GraphicsCommandList->Close();
+		ID3D12CommandList* ppCommandLists1[] = { m_GraphicsCommandList->GetCommandList() };
+		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists1), ppCommandLists1);
+		MoveToNextFrame();
+
+		m_GraphicsCommandList->Begin();
+
+		static Model s_Model;
+		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
+			if (resource.path().extension() == ".obj") {
+				cout << "Find Obj Model At " << resource.path().string() << endl;
+				
+				m_Models.emplace_back(
+					LoadModel(resource.path().string(), m_Device.Get(), m_GraphicsCommandList->GetCommandList()));
+
+				break;
+			}
+		}
+		m_GraphicsCommandList->Close();
+		ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
+		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		MoveToNextFrame();
+
+
+
 
 		// Create the pipeline state, which includes compiling and loading shaders.
 		//{
@@ -408,14 +436,14 @@ namespace Ladybug3D::Renderer {
 	{
 		m_FrameIndex = m_swapChain->GetCurrentBackBufferIndex();
 
-		m_GraphicsCommandList->BeginRenderPass();
+		m_GraphicsCommandList->Begin();
 		m_GraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 	}
 
 	void Renderer::RenderEnd()
 	{
 		m_GraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-		m_GraphicsCommandList->EndRenderPass();
+		m_GraphicsCommandList->Close();
 
 		ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
 		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);

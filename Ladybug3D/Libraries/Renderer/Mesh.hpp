@@ -1,9 +1,46 @@
 #pragma once
+#include <vector>
+#include <string>
 #include <memory>
 #include <map>
 #include <D3D12/D3D12_Define.hpp>
+#include <DirectXMath.h>
+#include <D3D12/D3D12_Texture.hpp>
+
+struct aiScene;
+struct aiNode;
+struct aiMesh;
+struct aiMaterial;
+struct aiAnimation;
+struct BoneChannel;
+class AnimationClip;
+class SkinnedModel;
+
+
 
 namespace Ladybug3D::Renderer {
+
+	class MeshReal {
+	public:
+		MeshReal(std::shared_ptr<D3D12::VertexBuffer>& vertexBuffer, std::shared_ptr<D3D12::IndexBuffer>& indexBuffer, const DirectX::XMMATRIX& worldMatrix)
+			: m_VertexBuffer(vertexBuffer)
+			, m_IndexBuffer(indexBuffer) 
+			, m_WorldMatrix(worldMatrix)
+		{}
+			
+	private:
+		std::shared_ptr<D3D12::VertexBuffer> m_VertexBuffer;
+		std::shared_ptr<D3D12::IndexBuffer> m_IndexBuffer;
+		DirectX::XMMATRIX m_WorldMatrix;
+	};
+
+	class Model {
+	public:
+		Model() {}
+		Model(std::vector<MeshReal> && meshes) : m_Meshes(std::move(meshes)) {}
+	private:
+		std::vector<MeshReal> m_Meshes;
+	};
 
 	class ManagerBase {
 	public:
@@ -36,4 +73,22 @@ namespace Ladybug3D::Renderer {
 	class ShaderManager {
 
 	};
+
+
+
+	class ModelImporter {
+	public:
+		ModelImporter(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList) : m_Device(device), m_CommandList(cmdList) {}
+		Model CreateModel(const std::string& filePath, const aiScene* scene);
+			
+	private:
+		void ProcessNode(aiNode* node, const aiScene* scene, const DirectX::XMMATRIX& parentTransformMatrix);
+
+		ID3D12Device* m_Device;
+		ID3D12GraphicsCommandList* m_CommandList;
+		std::vector<MeshReal> m_Meshes;
+		std::shared_ptr<MeshReal> m_Mesh;
+	};
+
+	Model LoadModel(const std::string& filePath, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
 }
