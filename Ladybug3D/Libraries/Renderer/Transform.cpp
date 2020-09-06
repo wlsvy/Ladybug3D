@@ -75,10 +75,13 @@ namespace Ladybug3D {
 
 	void Transform::SetLookAtPos(DirectX::XMFLOAT3 lookAtPos)
 	{
-		//lookatpos 와 cam pos가 동일한지 확인. 이 둘을 같을 수가 없음.
-		if (lookAtPos.x == position.x && lookAtPos.y == position.y && lookAtPos.z == position.z)
+		if (lookAtPos.x == position.x &&
+			lookAtPos.y == position.y &&
+			lookAtPos.z == position.z)
+		{
 			return;
-
+		}
+			
 		lookAtPos.x = position.x - lookAtPos.x;
 		lookAtPos.y = position.y - lookAtPos.y;
 		lookAtPos.z = position.z - lookAtPos.z;
