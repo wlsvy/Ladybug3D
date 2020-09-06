@@ -7,6 +7,7 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <sal.h>
+#include <D3Dcompiler.h>
 
 #include <D3D12/d3dx12.h>
 #include <D3D12/D3D12_Util.hpp>
@@ -355,43 +356,51 @@ namespace Ladybug3D::Renderer {
 		MoveToNextFrame();
 
 
+		{
+			ComPtr<ID3DBlob> vertexShader;
+			ComPtr<ID3DBlob> pixelShader;
 
+#if defined(_DEBUG)
+			UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+			UINT compileFlags = 0;
+#endif
 
-		// Create the pipeline state, which includes compiling and loading shaders.
-		//{
-		//	struct
-		//	{
-		//		uint8_t* data;
-		//		uint32_t size;
-		//	} meshShader, pixelShader;
+			for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
+				if (resource.path().extension() == ".hlsl") {
+					cout << "Find Shader At " << resource << endl;
+					ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
+					ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
+				}
+			}
 
-		//	ReadDataFromFile(GetAssetFullPath(c_meshShaderFilename).c_str(), &meshShader.data, &meshShader.size);
-		//	ReadDataFromFile(GetAssetFullPath(c_pixelShaderFilename).c_str(), &pixelShader.data, &pixelShader.size);
+			// Define the vertex input layout.
+			D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
+			{
+				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "TEXTURECOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+			};
 
-		//	// Pull root signature from the precompiled mesh shader.
-		//	ThrowIfFailed(m_device->CreateRootSignature(0, meshShader.data, meshShader.size, IID_PPV_ARGS(&m_rootSignature)));
+			// Describe and create the graphics pipeline state object (PSO).
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+			psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+			psoDesc.pRootSignature = m_RootSignature.Get();
+			psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
+			psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
+			psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+			psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+			psoDesc.DepthStencilState.DepthEnable = FALSE;
+			psoDesc.DepthStencilState.StencilEnable = FALSE;
+			psoDesc.SampleMask = UINT_MAX;
+			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+			psoDesc.NumRenderTargets = 1;
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+			psoDesc.SampleDesc.Count = 1;
+			ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_PipelineState)));
+		}
 
-		//	D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc = {};
-		//	psoDesc.pRootSignature = m_rootSignature.Get();
-		//	psoDesc.MS = { meshShader.data, meshShader.size };
-		//	psoDesc.PS = { pixelShader.data, pixelShader.size };
-		//	psoDesc.NumRenderTargets = 1;
-		//	psoDesc.RTVFormats[0] = m_renderTargets[0]->GetDesc().Format;
-		//	psoDesc.DSVFormat = m_depthStencil->GetDesc().Format;
-		//	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);    // CW front; cull back
-		//	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);         // Opaque
-		//	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); // Less-equal depth test w/ writes; no stencil
-		//	psoDesc.SampleMask = UINT_MAX;
-		//	psoDesc.SampleDesc = DefaultSampleDesc();
-
-		//	auto psoStream = CD3DX12_PIPELINE_MESH_STATE_STREAM(psoDesc);
-
-		//	D3D12_PIPELINE_STATE_STREAM_DESC streamDesc;
-		//	streamDesc.pPipelineStateSubobjectStream = &psoStream;
-		//	streamDesc.SizeInBytes = sizeof(psoStream);
-
-		//	ThrowIfFailed(m_device->CreateGraphicsPipelineState(&streamDesc, IID_PPV_ARGS(&m_pipelineState)));
-		//}
 	}
 
 	void Renderer::PresentSwapChain(bool isVsync)

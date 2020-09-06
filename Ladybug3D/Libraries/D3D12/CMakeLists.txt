@@ -6,6 +6,7 @@ include_directories(${THIRD_PARTY_DIRECTORY})
 
 # Link Library
 link_libraries(d3d12)
+link_libraries(d3dcompiler)
 link_libraries(Direct12XTK)
 link_libraries(DXGI)
 

@@ -27,13 +27,11 @@ add_library(${target}
     ${sources})
 
 
-
-
 target_link_libraries(${target} PUBLIC
     ${ASSIMP}
     imgui
     Ladybug3D_D3D12)
-#    ${PRECOMPILED_LIBRARY_DIRECTORY}/Any/assimp-vc140-mt.lib)
+
 
 
 # Project options
