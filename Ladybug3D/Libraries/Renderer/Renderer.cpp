@@ -464,15 +464,11 @@ namespace Ladybug3D::Renderer {
 	{
 		for (auto& model : m_Models) {
 			for (auto& mesh : model.GetMeshes()) {
-				auto num = mesh.GetIndexBuffer()->GetNumIndices();
-				auto vbv = mesh.GetVertexBufferView();
-				auto ibv = mesh.GetIndexBufferView();
 				m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
 				m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
 				m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_PipelineState.Get());
 				m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
-				//m_GraphicsCommandList->GetCommandList()->DrawInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0);
 			}
 		}
 	}

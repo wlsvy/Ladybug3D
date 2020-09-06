@@ -20,9 +20,9 @@ class SkinnedModel;
 
 namespace Ladybug3D::Renderer {
 
-	class MeshReal {
+	class Mesh {
 	public:
-		MeshReal(std::shared_ptr<D3D12::VertexBuffer>& vertexBuffer, std::shared_ptr<D3D12::IndexBuffer>& indexBuffer, const DirectX::XMMATRIX& worldMatrix)
+		Mesh(std::shared_ptr<D3D12::VertexBuffer>& vertexBuffer, std::shared_ptr<D3D12::IndexBuffer>& indexBuffer, const DirectX::XMMATRIX& worldMatrix)
 			: m_VertexBuffer(vertexBuffer)
 			, m_IndexBuffer(indexBuffer) 
 			, m_WorldMatrix(worldMatrix)
@@ -42,12 +42,12 @@ namespace Ladybug3D::Renderer {
 	class Model {
 	public:
 		Model() {}
-		Model(std::vector<MeshReal> && meshes) : m_Meshes(std::move(meshes)) {}
+		Model(std::vector<Mesh> && meshes) : m_Meshes(std::move(meshes)) {}
 
 		auto& GetMeshes() const { return m_Meshes; }
 
 	private:
-		std::vector<MeshReal> m_Meshes;
+		std::vector<Mesh> m_Meshes;
 	};
 
 	class ManagerBase {
@@ -94,8 +94,8 @@ namespace Ladybug3D::Renderer {
 
 		ID3D12Device* m_Device;
 		ID3D12GraphicsCommandList* m_CommandList;
-		std::vector<MeshReal> m_Meshes;
-		std::shared_ptr<MeshReal> m_Mesh;
+		std::vector<Mesh> m_Meshes;
+		std::shared_ptr<Mesh> m_Mesh;
 	};
 
 	Model LoadModel(const std::string& filePath, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);

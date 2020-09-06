@@ -216,7 +216,7 @@ namespace Ladybug3D::Renderer {
 			vector<Vertex> vertices;
 			vector<UINT> indices;
 			ProcessMesh(aimesh, vertices, indices);
-			auto mesh = MeshReal(
+			auto mesh = Mesh(
 				make_shared<VertexBuffer>(m_Device, m_CommandList, vertices),
 				make_shared<IndexBuffer>(m_Device, m_CommandList, indices),
 				nodeTransformMatrix);
