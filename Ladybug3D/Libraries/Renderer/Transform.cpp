@@ -1,6 +1,8 @@
 #include "Transform.hpp"
 #include <iostream>
 #include <algorithm>
+#include "Util.hpp"
+#include "Scene.hpp"
 
 using DirectX::operator+=;
 using DirectX::operator*;
@@ -115,36 +117,37 @@ namespace Ladybug3D {
 		remove_if(m_Children.begin(), m_Children.end(), [target](auto& child) { return child.get() == target; });
 	}
 
-	void Transform::SetParent(const std::shared_ptr<Transform>& transform)
+	void Transform::SetParent(const std::shared_ptr<Transform>& target)
 	{
-		/*auto* target = transform.get();
 		auto thisPtr = std::static_pointer_cast<Transform>(GetPtr());
 
-		if (transform == thisPtr ||
-			transform == m_Parent ||
-			HaveChildTransform(transform.get()))
+		if (target == thisPtr ||
+			target == m_Parent ||
+			HaveChildTransform(target.get()))
 		{
 			cout << "Invalid Transform" << endl;
 			return;
 		}
 
-		if (!transform) {
-			if (m_Parent == Core::GetWorldTransform()) {
+		auto worldTransform = Util::GetCurrentScene().GetWorldTransform();
+
+		if (target) {
+			if (m_Parent != nullptr)
+			{
+				m_Parent->EraseChild(this);
+			}
+
+			target->SetChild(thisPtr);
+			m_Parent = target;
+		}
+		else {
+			if (m_Parent == worldTransform) {
 				return;
 			}
-			Core::GetWorldTransform()->SetChild(thisPtr);
+			worldTransform->SetChild(thisPtr);
 			m_Parent->EraseChild(this);
-			m_Parent = Core::GetWorldTransform();
-			return;
+			m_Parent = worldTransform;
 		}
-
-		if (m_Parent != nullptr)
-		{
-			m_Parent->EraseChild(this);
-		}
-
-		transform->SetChild(thisPtr);
-		m_Parent = transform;*/
 	}
 
 	bool Transform::HaveChildTransform(Transform* target)
