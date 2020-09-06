@@ -3,14 +3,17 @@
 #include <DirectXMath.h>
 #include "Object.hpp"
 
-
 namespace Ladybug3D {
+
+	constexpr float POSITION_MAX = 10000.0f;
+	constexpr float POSITION_MIN = -10000.0f;
+	constexpr float Deg2Rad = 0.0174533f;	// pi / 180
+	constexpr float Rad2Deg = 57.2958f;	// 180 / pi
 
 	class Transform : public Object {
 	public:
 		Transform();
 		~Transform();
-		void OnGui(const char* option = nullptr) override;
 
 		void SetPosition(const DirectX::XMVECTOR& pos) { positionVec = pos; }
 		void SetPosition(const DirectX::XMFLOAT3& pos) { position = pos; }
@@ -33,7 +36,7 @@ namespace Ladybug3D {
 		DirectX::XMVECTOR GetGlobalPosition() const { return m_GlobalPositionVec; }
 		DirectX::XMVECTOR GetGlobalQuaternion() const { return m_GlobalQuaternionVec; }
 		DirectX::XMVECTOR GetLossyScale() const { return m_GlobalLossyScaleVec; }
-		DirectX::XMVECTOR GetQuaternion() const { using DirectX::operator*;  return DirectX::XMQuaternionRotationRollPitchYawFromVector(rotationVec * Math::Deg2Rad); }
+		DirectX::XMVECTOR GetQuaternion() const { using DirectX::operator*;  return DirectX::XMQuaternionRotationRollPitchYawFromVector(rotationVec * Deg2Rad); }
 
 		const DirectX::XMVECTOR& GetForwardVector() const { return m_Forward; }
 		const DirectX::XMVECTOR& GetUpwardVector() const { return m_Upward; }
@@ -45,7 +48,7 @@ namespace Ladybug3D {
 		const DirectX::XMMATRIX& GetWorldMatrix() const { return m_WorldMatrix; }
 		DirectX::XMMATRIX		 GetViewMatrix() const { using DirectX::operator+; return DirectX::XMMatrixLookAtLH(positionVec, m_Forward + positionVec, m_Upward); }
 
-		std::shared_ptr<Transform> GetParent() const { return m_Parent.lock(); }
+		std::shared_ptr<Transform> GetParent() const { return m_Parent; }
 		std::shared_ptr<Transform> GetChild(int index) const { return m_Children[index].lock(); }
 		size_t GetChildNum() const { return m_Children.size(); }
 
@@ -101,8 +104,8 @@ namespace Ladybug3D {
 		DirectX::XMVECTOR m_Left;
 		DirectX::XMVECTOR m_Upward;
 
-		std::weak_ptr<Transform> m_Parent;
-		std::vector<std::weak_ptr<Transform>> m_Children;
+		std::shared_ptr<Transform> m_Parent;
+		std::vector<std::shared_ptr<Transform>> m_Children;
 	};
 
 }

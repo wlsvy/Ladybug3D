@@ -1,15 +1,12 @@
 #include "Transform.h"
+#include <iostream>
+#include <algorithm>
 
 using DirectX::operator+=;
 using DirectX::operator*;
 
 using namespace DirectX;
 using namespace std;
-
-const float POSITION_MAX = 10000.0f;
-const float POSITION_MIN = -10000.0f;
-const float Deg2Rad = 0.0174533f;	// pi / 180
-const float Rad2Deg = 57.2958f;	// 180 / pi
 
 namespace Ladybug3D {
 
@@ -54,7 +51,7 @@ namespace Ladybug3D {
 
 		this->UpdateDirectionVectors(rotMat);
 		for (auto& child : m_Children) {
-			child.lock()->UpdateMatrix(m_WorldMatrix, m_GlobalQuaternionVec);
+			child->UpdateMatrix(m_WorldMatrix, m_GlobalQuaternionVec);
 		}
 	}
 
@@ -113,55 +110,48 @@ namespace Ladybug3D {
 		}
 	}
 
-	void Transform::EraseChild(Transform* child)
+	void Transform::EraseChild(Transform* target)
 	{
-		for (auto iter = m_Children.begin(); iter != m_Children.end();) {
-			if (iter->expired() ||
-				iter->lock().get() == child)
-			{
-				iter = m_Children.erase(iter);
-				continue;
-			}
-			iter++;
-		}
+		remove_if(m_Children.begin(), m_Children.end(), [](auto& child) { return child.get() == target});
 	}
 
 	void Transform::SetParent(const std::shared_ptr<Transform>& transform)
 	{
-		auto parent = GetParent();
 		auto* target = transform.get();
-		auto thisPtr = GetPtr<Transform>();
+		auto thisPtr = std::static_pointer_cast<Transform>(GetPtr());
 
-		if (transform.get() == this ||
-			transform == parent ||
-			HaveChildTransform(target))
+		if (transform == thisPtr ||
+			transform == m_Parent ||
+			HaveChildTransform(transform.get()))
 		{
+			cout << "Invalid Transform" << endl;
 			return;
 		}
 
-		if (target == nullptr) {
-			if (parent == Core::GetWorldTransform()) {
+		if (!transform) {
+			if (m_Parent == Core::GetWorldTransform()) {
 				return;
 			}
 			Core::GetWorldTransform()->SetChild(thisPtr);
-			parent->EraseChild(this);
+			m_Parent->EraseChild(this);
 			m_Parent = Core::GetWorldTransform();
 			return;
 		}
 
-		if (parent != nullptr)
+		if (m_Parent != nullptr)
 		{
-			parent->EraseChild(this);
+			m_Parent->EraseChild(this);
 		}
 
 		transform->SetChild(thisPtr);
 		m_Parent = transform;
 	}
 
-	bool Transform::HaveChildTransform(Transform* _transform)
+	bool Transform::HaveChildTransform(Transform* target)
 	{
-		for (auto& c : m_Children) {
-			if (c.lock().get() == _transform) {
+		//find(m_Children.cbegin(), m_Children.cend(), target);
+		for (auto& child : m_Children) {
+			if (child->GetId() == target->GetId()) {
 				return true;
 			}
 		}

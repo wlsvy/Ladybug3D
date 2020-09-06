@@ -3,9 +3,9 @@
 
 using namespace Ladybug3D;
 
-uint GetNewObjectID()
+unsigned int GetNewObjectID()
 {
-	static uint s_Id = 0;
+	static unsigned int s_Id = 0;
 	return s_Id++;
 }
 
