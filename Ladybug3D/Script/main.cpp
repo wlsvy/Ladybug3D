@@ -18,15 +18,10 @@ using namespace std;
 using namespace Ladybug3D;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-struct alignas(32) Foo {
-    float a;
-};
-
 int main()
 {
     
     Util::PrintHello();
-    cout << "size of 32byte aligned Foo : " << sizeof(Foo) << endl;
     auto& windowContainer =  WindowContainer::GetInstance();
     windowContainer.Create("Hellow Ladybug3D", "Ladybug3D", 1280, 800);
     windowContainer.Show();
