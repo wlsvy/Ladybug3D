@@ -20,11 +20,14 @@ file(GLOB headers
     ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 file(GLOB sources
     ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB_RECURSE Shaders
+    ${RESOURCE_DRIECTORY}/*.hlsl)
 
 # Build library
 add_library(${target}
     ${headers}
-    ${sources})
+    ${sources}
+    ${Shaders})
 
 
 target_link_libraries(${target} PUBLIC

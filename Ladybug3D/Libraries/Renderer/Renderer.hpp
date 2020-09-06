@@ -54,6 +54,7 @@ namespace Ladybug3D::Renderer {
 		void Update();
 		void RenderBegin();
 		void RenderEnd();
+		void Pass_Main();
 		void Pass_Gui();
 
 		void PresentSwapChain(bool isVsync);

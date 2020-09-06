@@ -457,6 +457,9 @@ namespace Ladybug3D::Renderer {
 		ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
 		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
+	void Renderer::Pass_Main()
+	{
+	}
 	void Renderer::Pass_Gui()
 	{
 		static bool show_demo_window = true;

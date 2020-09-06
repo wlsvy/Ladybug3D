@@ -1,27 +1,30 @@
+
 struct VSInput
 {
-    float3 position : POSITION;
+    float4 position : POSITION;
     float3 normal : NORMAL;
     float2 uv : TEXTURECOORD;
     float4 tangent : TANGENT;
 };
+
 
 struct PSInput
 {
-    float3 position : SV_POSITION;
+    float4 position : POSITION;
     float3 normal : NORMAL;
     float2 uv : TEXTURECOORD;
     float4 tangent : TANGENT;
 };
-
 
 PSInput VSMain(VSInput input)
 {
     PSInput output;
+
     output.position = input.position;
     output.normal = input.normal;
     output.uv = input.uv;
     output.tangent = input.tangent;
+
     return output;
 }
 
