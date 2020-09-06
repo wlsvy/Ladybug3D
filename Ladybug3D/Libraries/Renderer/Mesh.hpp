@@ -27,6 +27,11 @@ namespace Ladybug3D::Renderer {
 			, m_IndexBuffer(indexBuffer) 
 			, m_WorldMatrix(worldMatrix)
 		{}
+
+		auto GetVertexBuffer() const { return m_VertexBuffer.get(); }
+		auto GetVertexBufferView() const { return m_VertexBuffer.get()->GetView(); }
+		auto GetIndexBuffer() const { return m_IndexBuffer.get(); }
+		auto GetIndexBufferView() const  { return m_IndexBuffer.get()->GetView(); }
 			
 	private:
 		std::shared_ptr<D3D12::VertexBuffer> m_VertexBuffer;
@@ -38,6 +43,9 @@ namespace Ladybug3D::Renderer {
 	public:
 		Model() {}
 		Model(std::vector<MeshReal> && meshes) : m_Meshes(std::move(meshes)) {}
+
+		auto& GetMeshes() const { return m_Meshes; }
+
 	private:
 		std::vector<MeshReal> m_Meshes;
 	};

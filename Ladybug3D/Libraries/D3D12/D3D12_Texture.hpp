@@ -49,6 +49,8 @@ namespace Ladybug3D::D3D12 {
 		VertexBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<Vertex>& vertices);
 		~VertexBuffer();
 
+		const auto GetView() const { return &m_VertexBufferView; }
+
 	private:
 		D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_BufferUploadHeap;
@@ -58,6 +60,9 @@ namespace Ladybug3D::D3D12 {
 	public:
 		IndexBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<UINT>& indices);
 		~IndexBuffer();
+
+		const auto GetView() const { return &m_IndexBufferView; }
+		const auto GetNumIndices() const { return m_NumIndices; }
 
 	private:
 		D3D12_INDEX_BUFFER_VIEW m_IndexBufferView;

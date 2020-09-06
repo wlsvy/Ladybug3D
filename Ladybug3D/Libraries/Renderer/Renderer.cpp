@@ -89,6 +89,7 @@ namespace Ladybug3D::Renderer {
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(1));
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(2, m_ResourceDescriptorHeap->GetGpuHandle(2));
 
+		Pass_Main();
 		Pass_Gui();
 		RenderEnd();
 		PresentSwapChain(true);
@@ -346,8 +347,6 @@ namespace Ladybug3D::Renderer {
 				
 				m_Models.emplace_back(
 					LoadModel(resource.path().string(), m_Device.Get(), m_GraphicsCommandList->GetCommandList()));
-
-				break;
 			}
 		}
 		m_GraphicsCommandList->Close();
@@ -377,11 +376,14 @@ namespace Ladybug3D::Renderer {
 			// Define the vertex input layout.
 			D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
 			{
-				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "TEXTURECOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,			0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "TANGENT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			};
+
+			CD3DX12_RASTERIZER_DESC rasterizerStateDesc(D3D12_DEFAULT);
+			rasterizerStateDesc.CullMode = D3D12_CULL_MODE_NONE;
 
 			// Describe and create the graphics pipeline state object (PSO).
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -389,7 +391,7 @@ namespace Ladybug3D::Renderer {
 			psoDesc.pRootSignature = m_RootSignature.Get();
 			psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
 			psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
-			psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+			psoDesc.RasterizerState = rasterizerStateDesc;
 			psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 			psoDesc.DepthStencilState.DepthEnable = FALSE;
 			psoDesc.DepthStencilState.StencilEnable = FALSE;
@@ -457,9 +459,24 @@ namespace Ladybug3D::Renderer {
 		ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
 		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
+
 	void Renderer::Pass_Main()
 	{
+		for (auto& model : m_Models) {
+			for (auto& mesh : model.GetMeshes()) {
+				auto num = mesh.GetIndexBuffer()->GetNumIndices();
+				auto vbv = mesh.GetVertexBufferView();
+				auto ibv = mesh.GetIndexBufferView();
+				m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
+				m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
+				m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_PipelineState.Get());
+				m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
+				//m_GraphicsCommandList->GetCommandList()->DrawInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0);
+			}
+		}
 	}
+
 	void Renderer::Pass_Gui()
 	{
 		static bool show_demo_window = true;

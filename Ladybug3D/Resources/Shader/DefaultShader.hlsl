@@ -3,16 +3,16 @@ struct VSInput
 {
     float4 position : POSITION;
     float3 normal : NORMAL;
-    float2 uv : TEXTURECOORD;
+    float2 uv : TEXCOORD;
     float4 tangent : TANGENT;
 };
 
 
 struct PSInput
 {
-    float4 position : POSITION;
+    float4 position : SV_POSITION;
     float3 normal : NORMAL;
-    float2 uv : TEXTURECOORD;
+    float2 uv : TEXCOORD;
     float4 tangent : TANGENT;
 };
 
