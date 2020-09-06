@@ -1,4 +1,4 @@
-#include "Transform.h"
+#include "Transform.hpp"
 #include <iostream>
 #include <algorithm>
 
@@ -22,13 +22,13 @@ namespace Ladybug3D {
 	}
 
 	Transform::~Transform() {
-		for (auto& child : m_Children) {
+		/*for (auto& child : m_Children) {
 			Core::Destroy(child.lock()->m_GameObject);
 		}
 
 		if (auto ptr = m_Parent.lock()) {
 			ptr->EraseChild(this);
-		}
+		}*/
 	}
 
 	void Transform::UpdateMatrix(const DirectX::XMMATRIX& parentWorldMatrix, const DirectX::XMVECTOR& parentQuat)
@@ -112,12 +112,12 @@ namespace Ladybug3D {
 
 	void Transform::EraseChild(Transform* target)
 	{
-		remove_if(m_Children.begin(), m_Children.end(), [](auto& child) { return child.get() == target});
+		remove_if(m_Children.begin(), m_Children.end(), [target](auto& child) { return child.get() == target; });
 	}
 
 	void Transform::SetParent(const std::shared_ptr<Transform>& transform)
 	{
-		auto* target = transform.get();
+		/*auto* target = transform.get();
 		auto thisPtr = std::static_pointer_cast<Transform>(GetPtr());
 
 		if (transform == thisPtr ||
@@ -144,7 +144,7 @@ namespace Ladybug3D {
 		}
 
 		transform->SetChild(thisPtr);
-		m_Parent = transform;
+		m_Parent = transform;*/
 	}
 
 	bool Transform::HaveChildTransform(Transform* target)

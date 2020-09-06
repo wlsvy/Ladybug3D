@@ -26,8 +26,7 @@ file(GLOB_RECURSE Shaders
 # Build library
 add_library(${target}
     ${headers}
-    ${sources}
-    ${Shaders})
+    ${sources})
 
 
 target_link_libraries(${target} PUBLIC

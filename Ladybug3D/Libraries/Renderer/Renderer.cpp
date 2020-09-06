@@ -1,5 +1,7 @@
 #include "Renderer.hpp"
 #include "Mesh.hpp"
+#include "Scene.hpp"
+
 #include <iostream>
 #include <algorithm>
 #include <filesystem>
@@ -31,7 +33,7 @@ using namespace std;
 using namespace Microsoft::WRL;
 using namespace Ladybug3D::D3D12;
 
-namespace Ladybug3D::Renderer {
+namespace Ladybug3D {
 
 	Renderer::Renderer() 
 	{

@@ -2,7 +2,7 @@
 #include <Windows.h>
 #include <functional>
 #include <string>
-#include "Singleton.hpp"
+#include <Renderer/Singleton.hpp>
 
 namespace Ladybug3D {
 	

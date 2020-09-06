@@ -11,7 +11,7 @@ using namespace Microsoft::WRL;
 using namespace Ladybug3D::D3D12;
 using namespace std;
 
-namespace Ladybug3D::Renderer {
+namespace Ladybug3D {
 	ManagerBase::ManagerBase()
 	{
 	}

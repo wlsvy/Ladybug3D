@@ -3,6 +3,8 @@
 
 namespace Ladybug3D {
 
+	class Transform;
+	class Camera;
 
 	class Scene : public Object {
 	public:

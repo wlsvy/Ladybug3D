@@ -1,10 +1,12 @@
 #pragma once
 #include "Scene.hpp"
+#include "Transform.hpp"
+#include "Camera.hpp"
 
 namespace Ladybug3D {
 
 	Scene::Scene()
-		: m_WorldTransform(std::make_shared<Transform>()
+		: m_WorldTransform(std::make_shared<Transform>())
 	{
 	}
 	Scene::~Scene()
@@ -45,6 +47,6 @@ namespace Ladybug3D {
 	void Scene::Update()
 	{
 		m_WorldTransform->UpdateMatrix(DirectX::XMMatrixIdentity(), DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
-		m_MainCam->UpdateView();
+		//m_MainCam->UpdateView();
 	}
 }

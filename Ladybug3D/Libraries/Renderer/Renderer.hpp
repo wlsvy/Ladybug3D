@@ -3,15 +3,19 @@
 #include <vector>
 #include <memory>
 #include <DirectXMath.h>
+
+#include "Singleton.hpp"
 #include <D3D12/D3D12_Define.hpp>
+
 
 #include "Mesh.hpp"
 
-namespace Ladybug3D::Renderer {
+namespace Ladybug3D {
 
 	constexpr UINT SWAPCHAIN_BUFFER_COUNT = 2;
 
 	class Model;
+	class Scene;
 
 	struct alignas(256) CB_Matrix {
 		DirectX::XMFLOAT4X4 model;
@@ -22,7 +26,7 @@ namespace Ladybug3D::Renderer {
 		UINT index;
 	};
 
-	class Renderer {
+	class Renderer : public Singleton<Renderer> {
 	public:
 		Renderer();
 		~Renderer();
@@ -37,6 +41,8 @@ namespace Ladybug3D::Renderer {
 
 		void ResizeSwapChainBuffer(UINT width, UINT height);
 		void ShutDown();
+
+		auto GetCurrentScene() const { return m_CurrentScene; }
 
 	private:
 		void LoadAssets();
@@ -72,6 +78,7 @@ namespace Ladybug3D::Renderer {
 		std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_Test>> m_CbTest;
 		
 		std::vector<Model> m_Models;
+		std::shared_ptr<Scene> m_CurrentScene;
 
 		Microsoft::WRL::ComPtr<IDXGIAdapter4> m_Adapter;
 		Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;

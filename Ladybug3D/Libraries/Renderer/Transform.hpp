@@ -10,7 +10,10 @@ namespace Ladybug3D {
 	constexpr float Deg2Rad = 0.0174533f;	// pi / 180
 	constexpr float Rad2Deg = 57.2958f;	// 180 / pi
 
+	class Scene;
+
 	class Transform : public Object {
+		friend class Scene;
 	public:
 		Transform();
 		~Transform();
@@ -49,7 +52,7 @@ namespace Ladybug3D {
 		DirectX::XMMATRIX		 GetViewMatrix() const { using DirectX::operator+; return DirectX::XMMatrixLookAtLH(positionVec, m_Forward + positionVec, m_Upward); }
 
 		std::shared_ptr<Transform> GetParent() const { return m_Parent; }
-		std::shared_ptr<Transform> GetChild(int index) const { return m_Children[index].lock(); }
+		std::shared_ptr<Transform> GetChild(int index) const { return m_Children[index]; }
 		size_t GetChildNum() const { return m_Children.size(); }
 
 		void SetParent(const std::shared_ptr<Transform>& transform);

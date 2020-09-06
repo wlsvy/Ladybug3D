@@ -18,7 +18,7 @@ class SkinnedModel;
 
 
 
-namespace Ladybug3D::Renderer {
+namespace Ladybug3D {
 
 	class Mesh {
 	public:
