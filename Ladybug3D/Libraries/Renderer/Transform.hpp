@@ -11,11 +11,13 @@ namespace Ladybug3D {
 	constexpr float Rad2Deg = 57.2958f;	// 180 / pi
 
 	class Scene;
+	class SceneObject;
 
 	class Transform : public Object {
 		friend class Scene;
 	public:
 		Transform();
+		Transform(const SceneObject* sceneObj);
 		~Transform();
 
 		void SetPosition(const DirectX::XMVECTOR& pos) { positionVec = pos; }
@@ -57,6 +59,8 @@ namespace Ladybug3D {
 
 		void SetParent(const std::shared_ptr<Transform>& transform);
 		bool HaveChildTransform(Transform* _transform);
+
+		auto GetSceneObject() { return m_SceneObject; }
 
 		union {
 			DirectX::XMFLOAT3 position = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -109,6 +113,7 @@ namespace Ladybug3D {
 
 		std::shared_ptr<Transform> m_Parent;
 		std::vector<std::shared_ptr<Transform>> m_Children;
+		const SceneObject* m_SceneObject;
 	};
 
 }

@@ -3,11 +3,15 @@
 #include "Transform.hpp"
 #include "Camera.hpp"
 
+using namespace std;
+using namespace DirectX;
+
 namespace Ladybug3D {
 
 	Scene::Scene()
-		: m_WorldTransform(std::make_shared<Transform>())
+		: m_WorldTransform(make_shared<Transform>())
 	{
+		//m_MainCam = make_shared<Camera>();
 	}
 	Scene::~Scene()
 	{
@@ -46,7 +50,7 @@ namespace Ladybug3D {
 
 	void Scene::Update()
 	{
-		m_WorldTransform->UpdateMatrix(DirectX::XMMatrixIdentity(), DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
-		//m_MainCam->UpdateView();
+		m_WorldTransform->UpdateMatrix(XMMatrixIdentity(), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
+		m_MainCam->UpdateView();
 	}
 }

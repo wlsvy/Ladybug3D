@@ -1,6 +1,7 @@
 #include "Renderer.hpp"
 #include "Mesh.hpp"
 #include "Scene.hpp"
+#include "SceneObject.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -70,6 +71,10 @@ namespace Ladybug3D {
 			LoadAssets();
 			CreateResourceView();
 			InitImGui(hwnd);
+
+			m_CurrentScene = make_shared<Scene>();
+			m_Test = make_shared<SceneObject>();
+			cout << "Initialize Renderer Successed\n";
 		}
 		catch (exception& e) {
 			cout << e.what() << endl;

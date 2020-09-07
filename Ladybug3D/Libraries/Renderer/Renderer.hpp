@@ -16,6 +16,7 @@ namespace Ladybug3D {
 
 	class Model;
 	class Scene;
+	class SceneObject;
 
 	struct alignas(256) CB_Matrix {
 		DirectX::XMFLOAT4X4 model;
@@ -79,6 +80,7 @@ namespace Ladybug3D {
 		
 		std::vector<Model> m_Models;
 		std::shared_ptr<Scene> m_CurrentScene;
+		std::shared_ptr<SceneObject> m_Test;
 
 		Microsoft::WRL::ComPtr<IDXGIAdapter4> m_Adapter;
 		Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;

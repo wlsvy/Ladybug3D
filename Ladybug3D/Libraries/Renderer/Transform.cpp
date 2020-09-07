@@ -20,17 +20,17 @@ namespace Ladybug3D {
 	const XMVECTOR Transform::DEFAULT_RIGHT_VECTOR =	XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 
 	Transform::Transform()
+		: Object("Transform")
+	{
+	}
+	Transform::Transform(const SceneObject* sceneObj)
+		: Object("Transform")
+		, m_SceneObject(sceneObj)
 	{
 	}
 
-	Transform::~Transform() {
-		/*for (auto& child : m_Children) {
-			Core::Destroy(child.lock()->m_GameObject);
-		}
-
-		if (auto ptr = m_Parent.lock()) {
-			ptr->EraseChild(this);
-		}*/
+	Transform::~Transform() 
+	{
 	}
 
 	void Transform::UpdateMatrix(const DirectX::XMMATRIX& parentWorldMatrix, const DirectX::XMVECTOR& parentQuat)
@@ -86,7 +86,6 @@ namespace Ladybug3D {
 		lookAtPos.y = position.y - lookAtPos.y;
 		lookAtPos.z = position.z - lookAtPos.z;
 
-		//pitch 각도 구하기
 		float pitch = 0.0f;
 		if (lookAtPos.y != 0.0f) {
 			const float distance = sqrt(lookAtPos.x * lookAtPos.x + lookAtPos.z * lookAtPos.z);
