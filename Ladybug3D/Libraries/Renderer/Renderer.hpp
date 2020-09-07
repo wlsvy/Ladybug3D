@@ -12,7 +12,6 @@
 
 namespace Ladybug3D {
 
-	constexpr UINT SWAPCHAIN_BUFFER_COUNT = 2;
 
 	class Model;
 	class Scene;
@@ -30,14 +29,12 @@ namespace Ladybug3D {
 
 	class Renderer : public Singleton<Renderer> {
 	public:
+		static const UINT SWAPCHAIN_BUFFER_COUNT = 2;
+
 		Renderer();
 		~Renderer();
 
 		bool Initialize(HWND hwnd, UINT width, UINT height);
-
-		void LoadAssetsBegin();
-		void LoadTexture(const wchar_t * filePath);
-		void LoadAssetsEnd();
 
 		void Update();
 		void Render();

@@ -47,7 +47,6 @@ namespace Ladybug3D {
 
 	bool Renderer::Initialize(HWND hwnd, UINT width, UINT height)
 	{
-		Assimp::Importer importer;
 		try {
 			m_Width = width;
 			m_Height = height;
@@ -497,9 +496,9 @@ namespace Ladybug3D {
 				m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
 				m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
-				//m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_PipelineState.Get());
-				//m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
-				m_GraphicsCommandList->GetCommandList()->DrawInstanced(3, 1, 0, 0);
+				m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_PipelineState.Get());
+				m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
+				//m_GraphicsCommandList->GetCommandList()->DrawInstanced(3, 1, 0, 0);
 			}
 		}
 	}

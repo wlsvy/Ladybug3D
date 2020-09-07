@@ -7,6 +7,7 @@
 #include <dinput.h>
 #include <WindowContainer.hpp>
 #include <Renderer/Renderer.hpp>
+#include <Renderer/D3D12HelloTriangle.h>
 
 #include <Assimp/color4.h>
 #include <Assimp/Importer.hpp>
@@ -25,27 +26,34 @@ int main()
     windowContainer.Create("Hellow Ladybug3D", "Ladybug3D", 1280, 800);
     windowContainer.Show();
 
-    auto& renderer = Renderer::GetInstance();
-    if (!renderer.Initialize(windowContainer.GetHandle(), 1280, 800)) {
-        windowContainer.Destroy();
-        return 1;
-    }
+    D3D12HelloTriangle sample(1280, 800, L"Hellow Ladybug3D");
+    sample.OnInit(windowContainer.GetHandle(), 1280, 800);
 
-    windowContainer.SetWndProcCallback([](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-    {
-        ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
-    });
-    windowContainer.SetWndResizeCallback([&renderer](UINT width, UINT height)
-    {
-        renderer.ResizeSwapChainBuffer(width, height);
-    });
+    //auto& renderer = Renderer::GetInstance();
+    //if (!renderer.Initialize(windowContainer.GetHandle(), 1280, 800)) {
+    //    windowContainer.Destroy();
+    //    return 1;
+    //}
+
+    //windowContainer.SetWndProcCallback([](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    //{
+    //    //ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
+    //});
+    //windowContainer.SetWndResizeCallback([&renderer](UINT width, UINT height)
+    //{
+    //    renderer.ResizeSwapChainBuffer(width, height);
+    //});
 
     while (windowContainer.Tick()) {
-        renderer.Update();
-        renderer.Render();
+        //renderer.Update();
+        //renderer.Render();
+        sample.OnRender();
+        sample.OnUpdate();
+
     }
    
-    renderer.ShutDown();
+    sample.OnDestroy();
+    //renderer.ShutDown();
     windowContainer.Destroy();
     return 0;
 }
