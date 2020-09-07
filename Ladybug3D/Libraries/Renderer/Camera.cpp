@@ -9,4 +9,10 @@ namespace Ladybug3D {
 	Camera::~Camera()
 	{
 	}
+	void Camera::UpdateView()
+	{
+	}
+	void Camera::SetProjectionValues(float fovDegrees, float aspectRatio, float nearZ, float farZ)
+	{
+	}
 }

@@ -9,7 +9,6 @@ unsigned int GetNewObjectID()
 	return s_Id++;
 }
 
-
 Object::Object()
 	: Name("Object")
 	, m_Id(GetNewObjectID())
