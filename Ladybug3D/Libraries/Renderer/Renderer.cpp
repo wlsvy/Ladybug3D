@@ -52,6 +52,8 @@ namespace Ladybug3D {
 			m_Width = width;
 			m_Height = height;
 			m_aspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height);
+			m_viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
+			m_scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(width), static_cast<LONG>(height));
 
 #if defined(_DEBUG)
 			GetDebugInterface();
@@ -103,6 +105,8 @@ namespace Ladybug3D {
 		m_Width = max(1u, width);
 		m_Height = max(1u, height);
 		m_aspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height);
+		m_viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_Width), static_cast<float>(m_Height));
+		m_scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_Width), static_cast<LONG>(m_Height));
 
 		ClearMainRTV();
 
@@ -331,24 +335,31 @@ namespace Ladybug3D {
 		auto finish = uploadBatch.End(m_CommandQueue.Get());
 		finish.wait();
 
-
 		m_GraphicsCommandList->Begin();
-		m_GraphicsCommandList->Close();
-		ID3D12CommandList* ppCommandLists1[] = { m_GraphicsCommandList->GetCommandList() };
-		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists1), ppCommandLists1);
-		MoveToNextFrame();
-
-		m_GraphicsCommandList->Begin();
-
-		static Model s_Model;
+		
 		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
 			if (resource.path().extension() == ".obj") {
 				cout << "Find Obj Model At " << resource.path().string() << endl;
-				
+				continue;
 				m_Models.emplace_back(
 					LoadModel(resource.path().string(), m_Device.Get(), m_GraphicsCommandList->GetCommandList()));
 			}
 		}
+		
+		vector<Vertex> vv =
+		{
+			{ { 0.0f, 0.25f * m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f}},
+			{ { 0.0f, -0.25f * m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f } ,{ 0.0f, 1.0f, 0.0f}},
+			{ { -0.0f, -0.25f * m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f}},
+		};
+		vector<UINT> vi = { 0, 1, 2 };
+		
+		m_Models.emplace_back(vector<Mesh>{Mesh(
+			make_shared<VertexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), vv),
+			make_shared<IndexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), vi),
+			DirectX::XMMatrixIdentity()
+		)});
+
 		m_GraphicsCommandList->Close();
 		ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
 		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
@@ -376,10 +387,11 @@ namespace Ladybug3D {
 			// Define the vertex input layout.
 			D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
 			{
-				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,			0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "TANGENT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "NORMAL",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,		0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "TANGENT",	0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "COLOR",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 48,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			};
 
 			CD3DX12_RASTERIZER_DESC rasterizerStateDesc(D3D12_DEFAULT);
@@ -453,6 +465,8 @@ namespace Ladybug3D {
 		m_GraphicsCommandList->Begin();
 		m_GraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 		m_GraphicsCommandList->ClearRenderTarget(m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex), m_ClearColor);
+		m_GraphicsCommandList->GetCommandList()->RSSetViewports(1, &m_viewport);
+		m_GraphicsCommandList->GetCommandList()->RSSetScissorRects(1, &m_scissorRect);
 	}
 
 	void Renderer::RenderEnd()
@@ -474,14 +488,18 @@ namespace Ladybug3D {
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(2, m_ResourceDescriptorHeap->GetGpuHandle(2));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
+		m_CbMatrix->Data->viewProj = m_MainCam->GetViewProjectionMatrix();
+
 		for (auto& model : m_Models) {
 			for (auto& mesh : model.GetMeshes()) {
-				m_CbMatrix->Data->model = mesh.GetWorldMatrix();
+				m_CbMatrix->Data->world = mesh.GetWorldMatrix();
+				m_CbMatrix->Data->worldViewProj = mesh.GetWorldMatrix() * m_MainCam->GetViewProjectionMatrix();
 				m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
 				m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
-				m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_PipelineState.Get());
-				m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
+				//m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_PipelineState.Get());
+				//m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
+				m_GraphicsCommandList->GetCommandList()->DrawInstanced(3, 1, 0, 0);
 			}
 		}
 	}
@@ -503,6 +521,7 @@ namespace Ladybug3D {
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::Image((ImTextureID)(m_ImGuiDescriptorHeap->GetGpuHandle(1).ptr), ImVec2(100, 100));
 
+			ImGui::DragFloat4("Clear Color", m_ClearColor, 0.01f, 0.0f, 1.0f, "%.2f");
 			ImGui::Text("Camera Transform");
 			m_MainCam->GetTransform()->OnImGui();
 

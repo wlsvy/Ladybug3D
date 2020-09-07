@@ -20,9 +20,9 @@ namespace Ladybug3D {
 	class Camera;
 
 	struct alignas(256) CB_Matrix {
-		DirectX::XMMATRIX model;
+		DirectX::XMMATRIX world;
 		DirectX::XMMATRIX viewProj;
-		DirectX::XMMATRIX prevMvp;
+		DirectX::XMMATRIX worldViewProj;
 	}; 
 	struct alignas(256) CB_Test {
 		UINT index;
@@ -92,6 +92,8 @@ namespace Ladybug3D {
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_ImguiSrvHeap;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PipelineState;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
+		CD3DX12_VIEWPORT m_viewport;
+		CD3DX12_RECT m_scissorRect;
 
 		UINT m_FrameIndex;
 
@@ -101,6 +103,6 @@ namespace Ladybug3D {
 
 		bool m_useWarpDevice;
 
-		const float m_ClearColor[4] = { 0.45f, 0.55f, 0.60f, 1.00f };
+		float m_ClearColor[4] = { 0.45f, 0.55f, 0.60f, 0.00f };
 	};
 }

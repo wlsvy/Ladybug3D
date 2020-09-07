@@ -11,6 +11,7 @@ struct VSInput
     float3 normal : NORMAL;
     float2 uv : TEXCOORD;
     float4 tangent : TANGENT;
+    float3 color : COLOR;
 };
 
 
@@ -20,21 +21,22 @@ struct PSInput
     float3 normal : NORMAL;
     float2 uv : TEXCOORD;
     float4 tangent : TANGENT;
+    float4 color : COLOR;
 };
 
 PSInput VSMain(VSInput input)
 {
     PSInput output;
-
-    output.position = float4(input.position, 0.0f);
-    output.normal = input.normal;
+    //output.position = mul(float4(input.position, 1.0f), g_WorldMatrix);
+    output.position = float4(input.position, 1.0f);
+    output.normal = normalize(mul(input.normal, (float3x3) g_WorldMatrix));
+    output.tangent = normalize(mul(input.tangent, g_WorldMatrix));
     output.uv = input.uv;
-    output.tangent = input.tangent;
-
+    output.color = float4(input.color, 1.0f);
     return output;
 }
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    return float4(1.0f, 1.0f, 0.0f, 1.0f);
+    return input.color;
 }

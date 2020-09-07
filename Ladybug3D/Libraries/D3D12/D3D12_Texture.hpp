@@ -31,6 +31,7 @@ namespace Ladybug3D::D3D12 {
 		DirectX::XMFLOAT3 normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 		DirectX::XMFLOAT2 uv = DirectX::XMFLOAT2(0.0f, 0.0f);
 		DirectX::XMFLOAT4 tangent = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+		DirectX::XMFLOAT3 color = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
 	};
 
 
