@@ -48,9 +48,8 @@ namespace Ladybug3D {
 		m_MainCam->AddComponent<CamMove>();*/
 	}
 
-	void Scene::Update()
+	void Scene::OnUpdate()
 	{
 		m_WorldTransform->UpdateMatrix(XMMatrixIdentity(), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
-		m_MainCam->UpdateView();
 	}
 }

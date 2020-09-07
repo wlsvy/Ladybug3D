@@ -41,6 +41,7 @@ int main()
     });
 
     while (windowContainer.Tick()) {
+        renderer.Update();
         renderer.Render();
     }
    

@@ -16,5 +16,6 @@ namespace Ladybug3D {
 	}
 	SceneObject::~SceneObject()
 	{
+		m_Transform->SetParent(nullptr);
 	}
 }

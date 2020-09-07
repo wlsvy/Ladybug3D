@@ -1,4 +1,10 @@
 
+cbuffer cb0 : register(b0)
+{
+    float4x4 g_WorldMatrix;
+    float4x4 g_wvpMatrix;
+};
+
 struct VSInput
 {
     float3 position : POSITION;
@@ -20,7 +26,6 @@ PSInput VSMain(VSInput input)
 {
     PSInput output;
 
-    output.position = float4(input.position * 0.25f - float3(0.0f, 0.0f, 3.0f), 0.0f);
     output.position = float4(input.position, 0.0f);
     output.normal = input.normal;
     output.uv = input.uv;

@@ -5,8 +5,10 @@ namespace Ladybug3D {
 
 	class Transform;
 	class Camera;
+	class Renderer;
 
 	class Scene : public Object {
+		friend class Renderer;
 	public:
 		static constexpr float MAX_SIZE = 9999.0f;
 		static constexpr float MIN_SIZE = -9999.0f;
@@ -19,7 +21,7 @@ namespace Ladybug3D {
 	
 	private:
 		void Initialize();
-		void Update();
+		void OnUpdate() override;
 
 		std::shared_ptr<Transform> m_WorldTransform;
 		std::shared_ptr<Camera> m_MainCam;

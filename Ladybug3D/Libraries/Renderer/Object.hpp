@@ -10,10 +10,16 @@ namespace Ladybug3D {
 		Object(const Object&);
 		Object(Object&&) noexcept;
 		virtual ~Object();
-		Object& operator=(const Object&);
+		virtual Object& operator=(const Object&);
+		virtual Object& operator=(Object&&) noexcept;
 
 		unsigned int GetId() const			{ return m_Id; }
 		std::shared_ptr<Object> GetPtr()	{ return shared_from_this(); }
+		
+		virtual void OnAwake() {}
+		virtual void OnUpdate() {}
+		virtual void OnDestroy() {}
+		virtual void OnImGui() {}
 			
 		std::string Name = "Object";
 	private:

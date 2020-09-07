@@ -61,6 +61,7 @@ namespace Ladybug3D {
 		bool HaveChildTransform(Transform* _transform);
 
 		auto GetSceneObject() { return m_SceneObject; }
+		void OnImGui() override;
 
 		union {
 			DirectX::XMFLOAT3 position = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);

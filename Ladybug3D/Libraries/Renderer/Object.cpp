@@ -42,3 +42,10 @@ Object& Object::operator=(const Object& obj)
 	Name = obj.Name;
 	return *this;
 }
+
+Object& Ladybug3D::Object::operator=(Object&& obj) noexcept
+{
+	Name = std::move(obj.Name);
+	m_Id = std::move(obj.m_Id);
+	return *this;
+}

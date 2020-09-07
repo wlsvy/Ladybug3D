@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "Util.hpp"
 #include "Scene.hpp"
+#include <ImGui/imgui.h>
 
 using DirectX::operator+=;
 using DirectX::operator*;
@@ -161,6 +162,13 @@ namespace Ladybug3D {
 			}
 		}
 		return false;
+	}
+
+	void Transform::OnImGui()
+	{
+		ImGui::DragFloat3("Position", &position.x, 0.1f, POSITION_MIN, POSITION_MAX);
+		ImGui::DragFloat3("Rotation", &rotation.x, 0.1f, -1000.0f, 1000.0f);
+		ImGui::DragFloat3("Scale", &scale.x, 0.1f, -1000.0f, 1000.0f);
 	}
 
 }

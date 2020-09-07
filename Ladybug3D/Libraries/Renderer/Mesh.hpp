@@ -32,6 +32,7 @@ namespace Ladybug3D {
 		auto GetVertexBufferView() const { return m_VertexBuffer.get()->GetView(); }
 		auto GetIndexBuffer() const { return m_IndexBuffer.get(); }
 		auto GetIndexBufferView() const  { return m_IndexBuffer.get()->GetView(); }
+		auto GetWorldMatrix() const { return m_WorldMatrix; }
 			
 	private:
 		std::shared_ptr<D3D12::VertexBuffer> m_VertexBuffer;

@@ -17,11 +17,12 @@ namespace Ladybug3D {
 	class Model;
 	class Scene;
 	class SceneObject;
+	class Camera;
 
 	struct alignas(256) CB_Matrix {
-		DirectX::XMFLOAT4X4 model;
-		DirectX::XMFLOAT4X4 viewProj;
-		DirectX::XMFLOAT4X4 prevMvp;
+		DirectX::XMMATRIX model;
+		DirectX::XMMATRIX viewProj;
+		DirectX::XMMATRIX prevMvp;
 	}; 
 	struct alignas(256) CB_Test {
 		UINT index;
@@ -38,6 +39,7 @@ namespace Ladybug3D {
 		void LoadTexture(const wchar_t * filePath);
 		void LoadAssetsEnd();
 
+		void Update();
 		void Render();
 
 		void ResizeSwapChainBuffer(UINT width, UINT height);
@@ -58,7 +60,6 @@ namespace Ladybug3D {
 		void InitImGui(HWND hwnd);
 		void CreateRootSignature();
 
-		void Update();
 		void RenderBegin();
 		void RenderEnd();
 		void Pass_Main();
@@ -81,6 +82,7 @@ namespace Ladybug3D {
 		std::vector<Model> m_Models;
 		std::shared_ptr<Scene> m_CurrentScene;
 		std::shared_ptr<SceneObject> m_Test;
+		std::shared_ptr<Camera> m_MainCam;
 
 		Microsoft::WRL::ComPtr<IDXGIAdapter4> m_Adapter;
 		Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;

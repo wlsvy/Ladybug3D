@@ -16,11 +16,17 @@ namespace Ladybug3D {
 		const DirectX::XMMATRIX& GetViewProjectionMatrix() const { return m_ViewProjectionMatrix; }
 		float GetViewRange() const { return m_ViewRange; }
 
+		void OnUpdate() override;
+
 	private:
 		DirectX::XMMATRIX m_ViewMatrix;
 		DirectX::XMMATRIX m_ProjectionMatrix;
 		DirectX::XMMATRIX m_ViewProjectionMatrix;
 
 		float m_ViewRange;
+
+		float m_MoveSpeed = 6.0f;
+		float m_FastMoveSpeed = 30.0f;
+		float m_RotateSpeed = 1;
 	};
 }

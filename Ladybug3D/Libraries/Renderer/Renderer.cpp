@@ -2,6 +2,8 @@
 #include "Mesh.hpp"
 #include "Scene.hpp"
 #include "SceneObject.hpp"
+#include "Camera.hpp"
+#include "Transform.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -74,6 +76,7 @@ namespace Ladybug3D {
 
 			m_CurrentScene = make_shared<Scene>();
 			m_Test = make_shared<SceneObject>();
+			m_MainCam = make_shared<Camera>();
 			cout << "Initialize Renderer Successed\n";
 		}
 		catch (exception& e) {
@@ -438,6 +441,9 @@ namespace Ladybug3D {
 	void Renderer::Update()
 	{
 		m_CbTest->Data->index++;
+		m_MainCam->OnUpdate();
+		m_MainCam->UpdateView();
+		m_CurrentScene->OnUpdate();
 	}
 
 	void Renderer::RenderBegin()
@@ -470,6 +476,7 @@ namespace Ladybug3D {
 
 		for (auto& model : m_Models) {
 			for (auto& mesh : model.GetMeshes()) {
+				m_CbMatrix->Data->model = mesh.GetWorldMatrix();
 				m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
 				m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
@@ -482,8 +489,6 @@ namespace Ladybug3D {
 	void Renderer::Pass_Gui()
 	{
 		static bool show_demo_window = true;
-		static bool show_another_window = false;
-		static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -491,35 +496,16 @@ namespace Ladybug3D {
 
 		if (show_demo_window)
 			ImGui::ShowDemoWindow(&show_demo_window);
+
+		if (ImGui::Begin("Another Window"))
 		{
-			static float f = 0.0f;
-			static int counter = 0;
-
-			ImGui::Begin("Hello, world!");
-
-			ImGui::Text("This is some useful text.");
-			ImGui::Checkbox("Demo Window", &show_demo_window);
-			ImGui::Checkbox("Another Window", &show_another_window);
-
-			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-			ImGui::ColorEdit3("clear color", (float*)&clear_color);
-			
-			if (ImGui::Button("Button"))
-				counter++;
-			ImGui::SameLine();
-			ImGui::Text("counter = %d", counter);
-
+			ImGui::Text("Hello from another window!");
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::Image((ImTextureID)(m_ImGuiDescriptorHeap->GetGpuHandle(1).ptr), ImVec2(100, 100));
-			ImGui::End();
-		}
 
-		if (show_another_window)
-		{
-			ImGui::Begin("Another Window", &show_another_window);
-			ImGui::Text("Hello from another window!");
-			if (ImGui::Button("Close Me"))
-				show_another_window = false;
+			ImGui::Text("Camera Transform");
+			m_MainCam->GetTransform()->OnImGui();
+
 			ImGui::End();
 		}
 
