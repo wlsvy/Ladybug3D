@@ -54,6 +54,8 @@ private:
     std::unique_ptr<Ladybug3D::D3D12::GraphicsCommandList> m_GraphicsCommandList;
     std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_ResourceDescriptorHeap;
     std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_MainRTVDescriptorHeap;
+    std::unique_ptr<Ladybug3D::D3D12::VertexBuffer> m_VertexBuffer;
+    std::unique_ptr<Ladybug3D::D3D12::IndexBuffer> m_IndexBuffer;
 
     // Pipeline objects.
     CD3DX12_VIEWPORT m_viewport;

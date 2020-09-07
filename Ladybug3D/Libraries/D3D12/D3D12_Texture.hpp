@@ -33,7 +33,10 @@ namespace Ladybug3D::D3D12 {
 		DirectX::XMFLOAT4 tangent = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 		DirectX::XMFLOAT3 color = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
 	};
-
+	struct Vertex2 {
+		DirectX::XMFLOAT3 pos = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+		DirectX::XMFLOAT4 color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	};
 
 	template<typename T>
 	class ConstantBuffer : public Resource {
@@ -48,6 +51,7 @@ namespace Ladybug3D::D3D12 {
 	class VertexBuffer : public Resource {
 	public:
 		VertexBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<Vertex>& vertices);
+		VertexBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<Vertex2>& vertices);
 		~VertexBuffer();
 
 		const auto GetView() const { return &m_VertexBufferView; }
