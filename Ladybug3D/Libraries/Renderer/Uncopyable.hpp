@@ -11,6 +11,6 @@ namespace Ladybug3D {
 		Uncopyable(Uncopyable&&) noexcept = default;
 		virtual ~Uncopyable() = default;
 
-		Uncopyable& operator=(Uncopyable&&) = default;
+		Uncopyable& operator=(Uncopyable&&) noexcept = default;
 	};
 }
