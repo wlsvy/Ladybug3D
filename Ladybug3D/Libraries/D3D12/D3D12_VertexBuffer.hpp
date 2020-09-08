@@ -8,6 +8,11 @@ namespace Ladybug3D::D3D12 {
 	struct Vertex3D;
 	class VertexBuffer : public Resource {
 	public:
+		template<typename VertexType>
+		VertexBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<VertexType>& vertices) {
+
+		}
+
 		VertexBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<Vertex3D>& vertices);
 		~VertexBuffer();
 

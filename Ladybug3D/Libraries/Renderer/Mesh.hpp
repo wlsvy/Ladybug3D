@@ -18,8 +18,6 @@ struct BoneChannel;
 class AnimationClip;
 class SkinnedModel;
 
-
-
 namespace Ladybug3D {
 
 	class Mesh {
