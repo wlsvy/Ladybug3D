@@ -23,11 +23,11 @@
 #include <wrl.h>
 #include <shellapi.h>
 
-class DXSample
+class D3D12Resources
 {
 public:
-    DXSample(UINT width, UINT height, std::wstring name);
-    virtual ~DXSample();
+    D3D12Resources(UINT width, UINT height, std::wstring name);
+    virtual ~D3D12Resources();
 
     // Samples override the event handlers to handle specific messages.
     virtual void OnKeyDown(UINT8 /*key*/)   {}

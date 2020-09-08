@@ -36,7 +36,7 @@ namespace Ladybug3D {
 
 
 	D3D12HelloTriangle::D3D12HelloTriangle(UINT width, UINT height, std::wstring name) :
-		DXSample(width, height, name),
+		D3D12Resources(width, height, name),
 		m_frameIndex(0),
 		m_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)),
 		m_scissorRect(0, 0, static_cast<LONG>(width), static_cast<LONG>(height)),
@@ -157,8 +157,10 @@ namespace Ladybug3D {
 				{ { -0.25f, -0.25f * m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
 			};
 			vector<UINT> indexList = { 0, 1, 2 };
-			m_VertexBuffer = make_unique<VertexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), triangleVertices);
-			m_IndexBuffer = make_unique<IndexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), indexList);
+			auto vertexBuffer = make_shared<VertexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), triangleVertices);
+			auto indexBuffer = make_shared<IndexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), indexList);
+			Mesh m = Mesh(vertexBuffer, indexBuffer, DirectX::XMMatrixIdentity());
+			m_Models.emplace_back(m);
 			m_GraphicsCommandList->Close();
 			ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
 			m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
@@ -207,14 +209,11 @@ namespace Ladybug3D {
 	// Render the scene.
 	void D3D12HelloTriangle::OnRender()
 	{
-		PopulateCommandList();
+		RenderBegin();
+		Pass_Main();
+		RenderEnd();
 
-		ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
-		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-		// Present the frame.
 		ThrowIfFailed(m_swapChain->Present(1, 0));
-
 		WaitForPreviousFrame();
 	}
 
@@ -227,25 +226,6 @@ namespace Ladybug3D {
 		CloseHandle(m_fenceEvent);
 	}
 
-	void D3D12HelloTriangle::PopulateCommandList()
-	{
-		m_FrameIndex = m_swapChain->GetCurrentBackBufferIndex();
-
-		m_GraphicsCommandList->Begin();
-		m_GraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		m_GraphicsCommandList->ClearRenderTarget(m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex), m_ClearColor);
-		m_GraphicsCommandList->GetCommandList()->RSSetViewports(1, &m_viewport);
-		m_GraphicsCommandList->GetCommandList()->RSSetScissorRects(1, &m_scissorRect);
-		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
-		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
-		m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_pipelineState.Get());
-		m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, m_VertexBuffer->GetView());
-		m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(m_IndexBuffer->GetView());
-		m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(m_IndexBuffer->GetNumIndices(), 1, 0, 0, 0);
-		m_GraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-		m_GraphicsCommandList->Close();
-	}
 
 	void D3D12HelloTriangle::WaitForPreviousFrame()
 	{
@@ -487,4 +467,49 @@ namespace Ladybug3D {
 		ThrowIfFailed(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_rootSignature.GetAddressOf())));
 	}
 
+	void D3D12HelloTriangle::RenderBegin()
+	{
+		m_FrameIndex = m_swapChain->GetCurrentBackBufferIndex();
+
+		m_GraphicsCommandList->Begin();
+		m_GraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+		m_GraphicsCommandList->ClearRenderTarget(m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex), m_ClearColor);
+		m_GraphicsCommandList->GetCommandList()->RSSetViewports(1, &m_viewport);
+		m_GraphicsCommandList->GetCommandList()->RSSetScissorRects(1, &m_scissorRect);
+	}
+
+	void D3D12HelloTriangle::RenderEnd()
+	{
+		m_GraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+		m_GraphicsCommandList->Close();
+
+		ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
+		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	}
+
+	void D3D12HelloTriangle::Pass_Main()
+	{
+		ID3D12DescriptorHeap* ppHeaps[] = { m_ResourceDescriptorHeap->GetDescriptorHeap() };
+		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+		m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_pipelineState.Get());
+		m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
+		//m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(0, m_ResourceDescriptorHeap->GetGpuHandle(0));
+		//m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(1));
+		//m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(2, m_ResourceDescriptorHeap->GetGpuHandle(2));
+		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
+
+		//m_CbMatrix->Data->viewProj = m_MainCam->GetViewProjectionMatrix();
+
+		for (auto& model : m_Models) {
+			for (auto& mesh : model.GetMeshes()) {
+				//m_CbMatrix->Data->world = mesh.GetWorldMatrix();
+				//m_CbMatrix->Data->worldViewProj = mesh.GetWorldMatrix() * m_MainCam->GetViewProjectionMatrix();
+				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
+				m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
+				m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
+				//m_GraphicsCommandList->GetCommandList()->DrawInstanced(3, 1, 0, 0);
+			}
+		}
+	}
 }

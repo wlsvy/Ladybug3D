@@ -11,7 +11,7 @@
 
 #pragma once
 
-#include "DXSample.h"
+#include "DXSample.hpp"
 #include <D3D12/D3D12_Define.hpp>
 
 using namespace DirectX;
@@ -24,7 +24,7 @@ namespace Ladybug3D {
     class SceneObject;
     class Camera;
 
-    class D3D12HelloTriangle : public DXSample
+    class D3D12HelloTriangle : public D3D12Resources
     {
     public:
         static const UINT SWAPCHAIN_BUFFER_COUNT = 2;
@@ -54,6 +54,10 @@ namespace Ladybug3D {
         void CreateRootSignature();
         void ClearMainRTV();
 
+        void RenderBegin();
+        void RenderEnd();
+        void Pass_Main();
+        void Pass_Gui();
 
         struct Vertex
         {
@@ -100,9 +104,7 @@ namespace Ladybug3D {
         UINT m_FrameIndex;
         float m_ClearColor[4] = { 0.45f, 0.55f, 0.60f, 0.00f };
 
-        void LoadPipeline(HWND hwnd);
         void LoadAssets();
-        void PopulateCommandList();
         void WaitForPreviousFrame();
     };
 
