@@ -18,7 +18,6 @@ namespace Ladybug3D::D3D12 {
         UpdateSubresources<1>(cmdList, m_Resource.Get(), m_BufferUploadHeap.Get(), 0, 0, 1, &indexData);
         cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_Resource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
 
-        // Describe the index buffer view.
         m_IndexBufferView.BufferLocation = m_Resource->GetGPUVirtualAddress();
         m_IndexBufferView.Format = DXGI_FORMAT_R32_UINT;
         m_IndexBufferView.SizeInBytes = indexDataSize;
