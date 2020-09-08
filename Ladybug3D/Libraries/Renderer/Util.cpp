@@ -1,7 +1,6 @@
 #pragma once
 #include "Util.hpp"
 #include "Renderer.hpp"
-#include "D3D12HelloTriangle.hpp"
 
 namespace Ladybug3D::Util {
 

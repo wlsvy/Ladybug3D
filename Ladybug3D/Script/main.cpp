@@ -7,7 +7,6 @@
 #include <dinput.h>
 #include <WindowContainer.hpp>
 #include <Renderer/Renderer.hpp>
-#include <Renderer/D3D12HelloTriangle.hpp>
 
 #include <Assimp/color4.h>
 #include <Assimp/Importer.hpp>

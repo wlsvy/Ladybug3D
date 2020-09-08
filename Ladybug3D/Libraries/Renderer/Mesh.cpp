@@ -2,6 +2,7 @@
 #include <D3D12/D3D12_DescriptorHeapAllocator.hpp>
 #include <D3D12/D3D12_Util.hpp>
 #include <D3D12/D3D12_Texture.hpp>
+#include <D3D12/D3D12_VertexType.hpp>
 
 #include <Assimp/Importer.hpp>
 #include <Assimp/postprocess.h>
@@ -66,7 +67,7 @@ namespace Ladybug3D {
 		ThrowIfFailed(device->CreateRootSignature(0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
 	}
 
-	void ProcessMesh(aiMesh* mesh, vector<Vertex>& vertices, vector<UINT>& indices)
+	void ProcessMesh(aiMesh* mesh, vector<Vertex3D>& vertices, vector<UINT>& indices)
 	{
 		vertices.clear();
 		indices.clear();
@@ -76,7 +77,7 @@ namespace Ladybug3D {
 		//Get vertices
 		for (UINT i = 0; i < mesh->mNumVertices; i++)
 		{
-			Vertex vertex;
+			Vertex3D vertex;
 
 			vertex.pos.x = mesh->mVertices[i].x;
 			vertex.pos.y = mesh->mVertices[i].y;
@@ -109,25 +110,6 @@ namespace Ladybug3D {
 			for (UINT j = 0; j < face.mNumIndices; j++) {
 				indices.push_back(face.mIndices[j]);
 			}
-		}
-	}
-	void ProcessNode(aiNode* node, const aiScene* scene, const DirectX::XMMATRIX& parentTransformMatrix)
-	{
-		DirectX::XMMATRIX nodeTransformMatrix = DirectX::XMMatrixTranspose(DirectX::XMMATRIX(&node->mTransformation.a1)) * parentTransformMatrix;
-
-		for (UINT i = 0; i < node->mNumMeshes; i++)
-		{
-			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-			vector<Vertex> vertices;
-			vector<UINT> indices;
-			ProcessMesh(mesh, vertices, indices);
-
-			
-		}
-
-		for (UINT i = 0; i < node->mNumChildren; i++)
-		{
-			ProcessNode(node->mChildren[i], scene, nodeTransformMatrix);
 		}
 	}
 
@@ -213,7 +195,7 @@ namespace Ladybug3D {
 		for (UINT i = 0; i < node->mNumMeshes; i++)
 		{
 			aiMesh* aimesh = scene->mMeshes[node->mMeshes[i]];
-			vector<Vertex> vertices;
+			vector<Vertex3D> vertices;
 			vector<UINT> indices;
 			ProcessMesh(aimesh, vertices, indices);
 			auto mesh = Mesh(
