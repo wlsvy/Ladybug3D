@@ -14,9 +14,6 @@
 #include "D3D12Resources.hpp"
 #include "ConstantBufferType.hpp"
 #include <D3D12/D3D12_Define.hpp>
-#include <D3D12/D3D12_ConstantBuffer.hpp>
-#include <D3D12/D3D12_VertexBuffer.hpp>
-#include <D3D12/D3D12_IndexBuffer.hpp>
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -28,16 +25,16 @@ namespace Ladybug3D {
     class SceneObject;
     class Camera;
 
-    class RendererV2 : public D3D12Resources
+    class Renderer : public D3D12Resources
     {
     public:
         static const UINT SWAPCHAIN_BUFFER_COUNT = 2;
-        static RendererV2* s_Ptr;
+        static Renderer* s_Ptr;
 
-        RendererV2(UINT width, UINT height, std::wstring name);
-        ~RendererV2();
+        Renderer();
+        ~Renderer();
 
-        void OnInit(HWND hwnd, UINT width, UINT height);
+        bool OnInit(HWND hwnd, UINT width, UINT height);
         void OnUpdate();
         void OnRender();
         void OnDestroy();
@@ -85,16 +82,16 @@ namespace Ladybug3D {
         // Pipeline objects.
         CD3DX12_VIEWPORT m_viewport;
         CD3DX12_RECT m_scissorRect;
-        ComPtr<IDXGISwapChain3> m_swapChain;
-        ComPtr<ID3D12Device> m_Device;
-        ComPtr<ID3D12Resource> m_renderTargets[SWAPCHAIN_BUFFER_COUNT];
-        ComPtr<ID3D12CommandQueue> m_CommandQueue;
-        ComPtr<ID3D12RootSignature> m_rootSignature;
-        ComPtr<ID3D12PipelineState> m_pipelineState;
+        Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;
+        Microsoft::WRL::ComPtr<ID3D12Device> m_Device;
+        Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[SWAPCHAIN_BUFFER_COUNT];
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_CommandQueue;
+        Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
+        Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
         Microsoft::WRL::ComPtr<IDXGIAdapter4> m_Adapter;
 
         // App resources.
-        ComPtr<ID3D12Resource> m_vertexBuffer;
+        Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
         D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 
         UINT m_FrameIndex;

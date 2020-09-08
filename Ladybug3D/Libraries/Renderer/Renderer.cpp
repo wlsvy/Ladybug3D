@@ -30,6 +30,9 @@
 #include <D3D12/D3D12_DescriptorHeapAllocator.hpp>
 #include <D3D12/D3D12_Texture.hpp>
 #include <D3D12/D3D12_VertexType.hpp>
+#include <D3D12/D3D12_ConstantBuffer.hpp>
+#include <D3D12/D3D12_VertexBuffer.hpp>
+#include <D3D12/D3D12_IndexBuffer.hpp>
 
 #include <Direct12XTK/Include/ResourceUploadBatch.h>
 
@@ -39,22 +42,19 @@ using namespace Ladybug3D::D3D12;
 
 namespace Ladybug3D {
 
-	RendererV2* RendererV2::s_Ptr = nullptr;
+	Renderer* Renderer::s_Ptr = nullptr;
 
 
-	RendererV2::RendererV2(UINT width, UINT height, std::wstring name)
-		: D3D12Resources(width, height, name)
-		, m_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height))
-		, m_scissorRect(0, 0, static_cast<LONG>(width), static_cast<LONG>(height))
+	Renderer::Renderer()
 	{
 		s_Ptr = this;
 	}
 
-	RendererV2::~RendererV2()
+	Renderer::~Renderer()
 	{
 	}
 
-	void RendererV2::OnInit(HWND hwnd, UINT width, UINT height)
+	bool Renderer::OnInit(HWND hwnd, UINT width, UINT height)
 	{
 		try {
 			m_width = width;
@@ -94,10 +94,12 @@ namespace Ladybug3D {
 		}
 		catch (exception& e) {
 			cout << e.what() << endl;
+			return false;
 		}
+		return true;
 	}
 
-	void RendererV2::InitImGui(HWND hwnd)
+	void Renderer::InitImGui(HWND hwnd)
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -114,7 +116,7 @@ namespace Ladybug3D {
 	}
 
 
-	void RendererV2::LoadAssets()
+	void Renderer::LoadAssets()
 	{
 		// Create the pipeline state, which includes compiling and loading shaders.
 		{
@@ -215,7 +217,7 @@ namespace Ladybug3D {
 		}
 	}
 
-	void RendererV2::OnUpdate()
+	void Renderer::OnUpdate()
 	{
 		m_CbTest->Data->index++;
 		m_CurrentScene->OnUpdate();
@@ -223,7 +225,7 @@ namespace Ladybug3D {
 		m_MainCam->UpdateView();
 	}
 
-	void RendererV2::OnRender()
+	void Renderer::OnRender()
 	{
 		RenderBegin();
 		Pass_Main();
@@ -234,7 +236,7 @@ namespace Ladybug3D {
 		WaitForPreviousFrame();
 	}
 
-	void RendererV2::OnDestroy()
+	void Renderer::OnDestroy()
 	{
 		// Ensure that the GPU is no longer referencing resources that are about to be
 		// cleaned up by the destructor.
@@ -242,7 +244,7 @@ namespace Ladybug3D {
 		ShutDownImGui();
 	}
 
-	void RendererV2::ResizeSwapChainBuffer(UINT width, UINT height)
+	void Renderer::ResizeSwapChainBuffer(UINT width, UINT height)
 	{
 		if (m_width == width && m_height == height) return;
 
@@ -268,7 +270,7 @@ namespace Ladybug3D {
 	}
 
 
-	void RendererV2::WaitForPreviousFrame()
+	void Renderer::WaitForPreviousFrame()
 	{
 		auto fence = m_GraphicsCommandList->GetFence();
 		auto fenceValue = m_GraphicsCommandList->GetAndIncreaseFenceValue();
@@ -282,7 +284,7 @@ namespace Ladybug3D {
 		}
 	}
 
-	void RendererV2::Render()
+	void Renderer::Render()
 	{
 		/*RenderBegin();
 		Pass_Main();
@@ -292,14 +294,14 @@ namespace Ladybug3D {
 		MoveToNextFrame();*/
 	}
 
-	void RendererV2::GetDebugInterface()
+	void Renderer::GetDebugInterface()
 	{
 		ComPtr<ID3D12Debug> debugInterface;
 		ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
 		debugInterface->EnableDebugLayer();
 	}
 
-	void RendererV2::GetAdapters(bool useWarp)
+	void Renderer::GetAdapters(bool useWarp)
 	{
 		ComPtr<IDXGIFactory4> factory;
 		UINT createFactoryFlags = 0;
@@ -322,7 +324,7 @@ namespace Ladybug3D {
 		}
 	}
 
-	void RendererV2::CreateDevice(IDXGIAdapter4* adapter)
+	void Renderer::CreateDevice(IDXGIAdapter4* adapter)
 	{
 		ComPtr<ID3D12Device2> d3d12Device2;
 		ThrowIfFailed(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(m_Device.GetAddressOf())));
@@ -357,7 +359,7 @@ namespace Ladybug3D {
 #endif
 	}
 
-	void RendererV2::CreateCommandQueue()
+	void Renderer::CreateCommandQueue()
 	{
 		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -366,7 +368,7 @@ namespace Ladybug3D {
 		ThrowIfFailed(m_Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_CommandQueue)));
 	}
 
-	void RendererV2::CreateSwapChain(HWND hwnd)
+	void Renderer::CreateSwapChain(HWND hwnd)
 	{
 		UINT createFactoryFlags = 0;
 #if defined(_DEBUG)
@@ -399,7 +401,7 @@ namespace Ladybug3D {
 		ThrowIfFailed(swapChain1.As(&m_swapChain));
 	}
 
-	void RendererV2::CreateMainRTV()
+	void Renderer::CreateMainRTV()
 	{
 		for (UINT n = 0; n < SWAPCHAIN_BUFFER_COUNT; n++)
 		{
@@ -408,7 +410,7 @@ namespace Ladybug3D {
 		}
 	}
 
-	void RendererV2::CreateResourceView()
+	void Renderer::CreateResourceView()
 	{
 		//CBV -> SRV -> Imgui SRV
 		m_CbMatrix->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle());
@@ -418,7 +420,7 @@ namespace Ladybug3D {
 		m_SampleTexture->CreateShaderResourceView(m_Device.Get(), m_ImGuiDescriptorHeap->GetCpuHandle(1));
 	}
 
-	void RendererV2::ClearMainRTV()
+	void Renderer::ClearMainRTV()
 	{
 		for (auto& rtv : m_renderTargets) {
 			rtv.Reset();
@@ -426,7 +428,7 @@ namespace Ladybug3D {
 	}
 
 
-	void RendererV2::CreateRootSignature()
+	void Renderer::CreateRootSignature()
 	{
 		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = { D3D_ROOT_SIGNATURE_VERSION_1_1 };
 		if (FAILED(m_Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
@@ -462,7 +464,7 @@ namespace Ladybug3D {
 		ThrowIfFailed(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_rootSignature.GetAddressOf())));
 	}
 
-	void RendererV2::RenderBegin()
+	void Renderer::RenderBegin()
 	{
 		m_FrameIndex = m_swapChain->GetCurrentBackBufferIndex();
 
@@ -473,7 +475,7 @@ namespace Ladybug3D {
 		m_GraphicsCommandList->GetCommandList()->RSSetScissorRects(1, &m_scissorRect);
 	}
 
-	void RendererV2::RenderEnd()
+	void Renderer::RenderEnd()
 	{
 		m_GraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 		m_GraphicsCommandList->Close();
@@ -482,7 +484,7 @@ namespace Ladybug3D {
 		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 
-	void RendererV2::Pass_Main()
+	void Renderer::Pass_Main()
 	{
 		ID3D12DescriptorHeap* ppHeaps[] = { m_ResourceDescriptorHeap->GetDescriptorHeap() };
 		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
@@ -507,7 +509,7 @@ namespace Ladybug3D {
 		}
 	}
 
-	void RendererV2::Pass_ImGui()
+	void Renderer::Pass_ImGui()
 	{
 		static bool show_demo_window = true;
 
@@ -540,7 +542,7 @@ namespace Ladybug3D {
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsCommandList->GetCommandList());
 	}
 
-	void RendererV2::ShutDownImGui()
+	void Renderer::ShutDownImGui()
 	{
 		ImGui_ImplDX12_Shutdown();
 		ImGui_ImplWin32_Shutdown();
