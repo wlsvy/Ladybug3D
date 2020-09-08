@@ -33,12 +33,8 @@ using namespace Microsoft::WRL;
 
 namespace Ladybug3D {
 
-	Renderer* Renderer::s_Ptr = nullptr;
-
-
 	Renderer::Renderer()
 	{
-		s_Ptr = this;
 	}
 
 	Renderer::~Renderer()

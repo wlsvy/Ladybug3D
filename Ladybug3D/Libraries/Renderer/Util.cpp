@@ -6,7 +6,6 @@ namespace Ladybug3D::Util {
 
 	Scene& GetCurrentScene()
 	{
-		return *Renderer::s_Ptr->GetCurrentScene();
-		//return *Renderer::GetInstance().GetCurrentScene();
+		return *Renderer::GetInstance().GetCurrentScene();
 	}
 }

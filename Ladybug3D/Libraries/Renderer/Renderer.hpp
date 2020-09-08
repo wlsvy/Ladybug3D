@@ -1,5 +1,6 @@
 #pragma once
 #include "D3D12Resources.hpp"
+#include "Singleton.hpp"
 
 namespace Ladybug3D {
 
@@ -11,11 +12,9 @@ namespace Ladybug3D {
     struct CB_Matrix;
     struct CB_Test;
 
-    class Renderer : public D3D12Resources
+    class Renderer : public D3D12Resources, public Singleton<Renderer>
     {
     public:
-        static Renderer* s_Ptr;
-
         Renderer();
         ~Renderer();
 
@@ -27,14 +26,16 @@ namespace Ladybug3D {
         auto GetCurrentScene() const { return m_CurrentScene; }
 
     private:
-        void CreateResourceView();
         void InitImGui(HWND hwnd);
         void CreateRootSignature();
+        void LoadAssets();
+        void CreateResourceView();
 
         void RenderBegin();
         void RenderEnd();
         void Pass_Main();
         void Pass_ImGui();
+        void WaitForPreviousFrame();
 
         void ShutDownImGui();
 
@@ -53,16 +54,8 @@ namespace Ladybug3D {
         std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_Matrix>> m_CbMatrix;
         std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_Test>> m_CbTest;
 
-        
-
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
-
-
-
-        void LoadAssets();
-        void WaitForPreviousFrame();
     };
-
 }
 

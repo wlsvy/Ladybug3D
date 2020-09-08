@@ -25,8 +25,8 @@ int main()
     windowContainer.Create("Hellow Ladybug3D", "Ladybug3D", 1280, 800);
     windowContainer.Show();
 
-    Renderer sample;
-    if (!sample.OnInit(windowContainer.GetHandle(), 1280, 800)) {
+    auto& renderer = Renderer::GetInstance();
+    if (!renderer.OnInit(windowContainer.GetHandle(), 1280, 800)) {
         windowContainer.Destroy();
         return 1;
     }
@@ -35,18 +35,18 @@ int main()
     {
         ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
     });
-    windowContainer.SetWndResizeCallback([&sample](UINT width, UINT height)
+    windowContainer.SetWndResizeCallback([&renderer](UINT width, UINT height)
     {
-        sample.ResizeSwapChainBuffer(width, height);
+        renderer.ResizeSwapChainBuffer(width, height);
     });
 
     while (windowContainer.Tick()) {
-        sample.OnRender();
-        sample.OnUpdate();
+        renderer.OnRender();
+        renderer.OnUpdate();
 
     }
    
-    sample.OnDestroy();
+    renderer.OnDestroy();
     windowContainer.Destroy();
     return 0;
 }
