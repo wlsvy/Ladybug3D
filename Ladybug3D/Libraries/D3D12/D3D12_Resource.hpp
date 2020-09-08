@@ -5,8 +5,12 @@
 namespace Ladybug3D::D3D12 {
 	class Resource {
 	public:
-		Resource();
-		~Resource();
+		Resource() = default;
+		virtual ~Resource() = default;
+		Resource(const Resource&) = delete;
+		Resource(Resource&&) noexcept = delete;
+		Resource& operator=(const Resource&) = delete;
+		Resource& operator=(Resource&&) noexcept = default;
 
 		auto GetResource() { return m_Resource.Get(); }
 

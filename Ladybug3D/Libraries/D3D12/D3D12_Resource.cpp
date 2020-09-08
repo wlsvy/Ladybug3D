@@ -3,12 +3,7 @@
 #include "d3dx12.h"
 
 namespace Ladybug3D::D3D12 {
-	Resource::Resource()
-	{
-	}
-	Resource::~Resource()
-	{
-	}
+
 	void Resource::CreateBuffer(
 		ID3D12Device* device,
 		UINT size, 
