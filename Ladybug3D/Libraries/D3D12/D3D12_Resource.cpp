@@ -25,7 +25,7 @@ namespace Ladybug3D::D3D12 {
 			clearValue,
 			IID_PPV_ARGS(resource)));
 
-		NAME_D3D12_OBJECT(m_Resource);
+		NAME_D3D12_OBJECT(resource);
 	}
 }
 
