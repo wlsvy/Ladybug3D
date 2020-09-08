@@ -338,8 +338,8 @@ namespace Ladybug3D {
 		
 		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
 			if (resource.path().extension() == ".obj") {
-				cout << "Find Obj Model At " << resource.path().string() << endl;
-				continue;
+				if (resource.path().stem() != L"cone") continue;
+				cout << "Find Obj Model At " << resource.path() << " " << resource.path().stem() << endl;
 				m_Models.emplace_back(
 					LoadModel(resource.path().string(), m_Device.Get(), m_GraphicsCommandList->GetCommandList()));
 			}
@@ -413,7 +413,6 @@ namespace Ladybug3D {
 			psoDesc.SampleDesc.Count = 1;
 			ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_PipelineState)));
 		}
-
 	}
 
 	void Renderer::PresentSwapChain(bool isVsync)

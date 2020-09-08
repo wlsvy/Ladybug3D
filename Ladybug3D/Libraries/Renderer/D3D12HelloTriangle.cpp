@@ -20,11 +20,17 @@
 #include <filesystem>
 #include <iostream>
 
+#include <ImGui/imgui.h>
+#include <ImGui/imgui_impl_dx12.h>
+#include <ImGui/imgui_impl_win32.h>
+
 #include <D3D12/d3dx12.h>
 #include <D3D12/D3D12_Util.hpp>
 #include <D3D12/D3D12_CommandList.hpp>
 #include <D3D12/D3D12_DescriptorHeapAllocator.hpp>
 #include <D3D12/D3D12_Texture.hpp>
+
+#include <Direct12XTK/Include/ResourceUploadBatch.h>
 
 using namespace std;
 using namespace DirectX;
@@ -32,24 +38,22 @@ using namespace Ladybug3D::D3D12;
 
 namespace Ladybug3D {
 
-	D3D12HelloTriangle* D3D12HelloTriangle::s_Ptr = nullptr;
+	RendererV2* RendererV2::s_Ptr = nullptr;
 
 
-	D3D12HelloTriangle::D3D12HelloTriangle(UINT width, UINT height, std::wstring name) :
-		D3D12Resources(width, height, name),
-		m_frameIndex(0),
-		m_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)),
-		m_scissorRect(0, 0, static_cast<LONG>(width), static_cast<LONG>(height)),
-		m_rtvDescriptorSize(0)
+	RendererV2::RendererV2(UINT width, UINT height, std::wstring name)
+		: D3D12Resources(width, height, name)
+		, m_viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height))
+		, m_scissorRect(0, 0, static_cast<LONG>(width), static_cast<LONG>(height))
 	{
 		s_Ptr = this;
 	}
 
-	D3D12HelloTriangle::~D3D12HelloTriangle()
+	RendererV2::~RendererV2()
 	{
 	}
 
-	void D3D12HelloTriangle::OnInit(HWND hwnd, UINT width, UINT height)
+	void RendererV2::OnInit(HWND hwnd, UINT width, UINT height)
 	{
 		try {
 			m_width = width;
@@ -67,19 +71,25 @@ namespace Ladybug3D {
 			m_GraphicsCommandList = make_unique<GraphicsCommandList>(m_Device.Get());
 			m_MainRTVDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, SWAPCHAIN_BUFFER_COUNT);
 			m_ResourceDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 5);
-			//m_ImGuiDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 3);
+			m_ImGuiDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 3);
+
+			m_CbMatrix = make_unique<ConstantBuffer<CB_Matrix>>(m_Device.Get());
+			m_CbTest = make_unique<ConstantBuffer<CB_Test>>(m_Device.Get());
 
 			CreateCommandQueue();
 			CreateSwapChain(hwnd);
 			CreateMainRTV();
 			CreateRootSignature();
 			LoadAssets();
+			CreateResourceView();
+			InitImGui(hwnd);
 			//CreateResourceView();
 			//InitImGui(hwnd);
 
 			m_CurrentScene = make_shared<Scene>();
 			m_Test = make_shared<SceneObject>();
 			m_MainCam = make_shared<Camera>();
+			m_MainCam->SetProjectionValues(90.0f, m_aspectRatio, 0.1f, 1000.0f);
 
 			cout << "Initialize Renderer Successed\n";
 		}
@@ -88,19 +98,25 @@ namespace Ladybug3D {
 		}
 	}
 
-	void D3D12HelloTriangle::LoadAssets()
+	void RendererV2::InitImGui(HWND hwnd)
 	{
-		// Create an empty root signature.
-		{
-			CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-			rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGui::StyleColorsDark();
 
-			ComPtr<ID3DBlob> signature;
-			ComPtr<ID3DBlob> error;
-			ThrowIfFailed(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
-			ThrowIfFailed(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
-		}
+		ImGui_ImplWin32_Init(hwnd);
+		ImGui_ImplDX12_Init(
+			m_Device.Get(),
+			SWAPCHAIN_BUFFER_COUNT,
+			DXGI_FORMAT_R8G8B8A8_UNORM,
+			m_ImGuiDescriptorHeap->GetDescriptorHeap(),
+			m_ImGuiDescriptorHeap->GetCpuHandle(),
+			m_ImGuiDescriptorHeap->GetGpuHandle());
+	}
 
+
+	void RendererV2::LoadAssets()
+	{
 		// Create the pipeline state, which includes compiling and loading shaders.
 		{
 			ComPtr<ID3DBlob> vertexShader;
@@ -114,20 +130,22 @@ namespace Ladybug3D {
 #endif
 
 			for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
-				if (resource.path().extension() == ".hlsl") {
+				if (resource.path().extension() == L".hlsl"){
+					if (resource.path().stem() != L"shaders") {
+						//continue;
+					}
 					cout << "Find Shader At " << resource << endl;
 					ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
 					ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
 				}
 			}
 
-			//ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-			//ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
-
 			D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
 			{
-				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+				{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "NORMAL",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,		0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+				{ "TANGENT",	0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			};
 
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -147,14 +165,44 @@ namespace Ladybug3D {
 			ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 		}
 
+		//Create Texture
+		{
+			DirectX::ResourceUploadBatch uploadBatch(m_Device.Get());
+			uploadBatch.Begin();
+
+			for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
+				if (resource.path().extension() == L".png") {
+					cout << "Find Texture At " << resource << endl;
+				}
+			}
+
+			string textureDir = LADYBUG3D_RESOURCE_PATH;
+			textureDir += "/Texture/Sample.png";
+			wstring wstr(textureDir.begin(), textureDir.end());
+			m_SampleTexture = make_unique<Texture>();
+			m_SampleTexture->InitializeWICTexture(wstr.c_str(), uploadBatch, m_Device.Get());
+			auto finish = uploadBatch.End(m_CommandQueue.Get());
+			finish.wait();
+		}
+
+
 		// Create the vertex buffer.
 		{
 			m_GraphicsCommandList->Begin();
-			vector<Vertex2> triangleVertices =
+			for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
+				if (resource.path().extension() == ".obj") {
+					if (resource.path().stem() != L"cone") continue;
+					cout << "Find Obj Model At " << resource.path().string() << endl;
+					m_Models.emplace_back(
+						LoadModel(resource.path().string(), m_Device.Get(), m_GraphicsCommandList->GetCommandList()));
+					continue;
+				}
+			}
+			vector<Vertex> triangleVertices =
 			{
-				{ { 0.0f, 0.25f * m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-				{ { 0.25f, -0.25f * m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-				{ { -0.25f, -0.25f * m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+				{ { 0.0f, 5.0f * m_aspectRatio, 5.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f}},
+				{ { 5.0f, -5.0f * m_aspectRatio, 5.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f } ,{ 0.0f, 1.0f, 0.0f}},
+				{ { -5.0f, -5.0f * m_aspectRatio, 5.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f}},
 			};
 			vector<UINT> indexList = { 0, 1, 2 };
 			auto vertexBuffer = make_shared<VertexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), triangleVertices);
@@ -165,69 +213,63 @@ namespace Ladybug3D {
 			ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
 			m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 			WaitForPreviousFrame();
-
-			//const UINT vertexBufferSize = sizeof(triangleVertices);
-
-			//ThrowIfFailed(m_Device->CreateCommittedResource(
-			//    &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-			//    D3D12_HEAP_FLAG_NONE,
-			//    &CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
-			//    D3D12_RESOURCE_STATE_GENERIC_READ,
-			//    nullptr,
-			//    IID_PPV_ARGS(&m_vertexBuffer)));
-
-			//UINT8* pVertexDataBegin;
-			//CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
-			//ThrowIfFailed(m_vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
-			//memcpy(pVertexDataBegin, triangleVertices.data(), sizeof(triangleVertices));
-			//m_vertexBuffer->Unmap(0, nullptr);
-
-			//m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-			//m_vertexBufferView.StrideInBytes = sizeof(Vertex);
-			//m_vertexBufferView.SizeInBytes = vertexBufferSize;
-		}
-
-		{
-			ThrowIfFailed(m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-			m_fenceValue = 1;
-
-			m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-			if (m_fenceEvent == nullptr)
-			{
-				ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-			}
-
-			WaitForPreviousFrame();
 		}
 	}
 
-	// Update frame-based values.
-	void D3D12HelloTriangle::OnUpdate()
+	void RendererV2::OnUpdate()
 	{
+		m_CbTest->Data->index++;
+		m_CurrentScene->OnUpdate();
+		m_MainCam->OnUpdate();
+		m_MainCam->UpdateView();
 	}
 
-	// Render the scene.
-	void D3D12HelloTriangle::OnRender()
+	void RendererV2::OnRender()
 	{
 		RenderBegin();
 		Pass_Main();
+		Pass_ImGui();
 		RenderEnd();
 
 		ThrowIfFailed(m_swapChain->Present(1, 0));
 		WaitForPreviousFrame();
 	}
 
-	void D3D12HelloTriangle::OnDestroy()
+	void RendererV2::OnDestroy()
 	{
 		// Ensure that the GPU is no longer referencing resources that are about to be
 		// cleaned up by the destructor.
 		WaitForPreviousFrame();
+		ShutDownImGui();
+	}
 
-		CloseHandle(m_fenceEvent);
+	void RendererV2::ResizeSwapChainBuffer(UINT width, UINT height)
+	{
+		if (m_width == width && m_height == height) return;
+
+		m_width = max(1u, width);
+		m_height = max(1u, height);
+		m_aspectRatio = static_cast<float>(m_width) / static_cast<float>(m_height);
+		m_viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_width), static_cast<float>(m_height));
+		m_scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height));
+
+		ClearMainRTV();
+
+		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+		ThrowIfFailed(m_swapChain->GetDesc(&swapChainDesc));
+		ThrowIfFailed(m_swapChain->ResizeBuffers(
+			SWAPCHAIN_BUFFER_COUNT,
+			m_width, m_height,
+			swapChainDesc.BufferDesc.Format,
+			swapChainDesc.Flags));
+
+		m_FrameIndex = m_swapChain->GetCurrentBackBufferIndex();
+
+		CreateMainRTV();
 	}
 
 
-	void D3D12HelloTriangle::WaitForPreviousFrame()
+	void RendererV2::WaitForPreviousFrame()
 	{
 		auto fence = m_GraphicsCommandList->GetFence();
 		auto fenceValue = m_GraphicsCommandList->GetAndIncreaseFenceValue();
@@ -241,7 +283,7 @@ namespace Ladybug3D {
 		}
 	}
 
-	void D3D12HelloTriangle::Render()
+	void RendererV2::Render()
 	{
 		/*RenderBegin();
 		Pass_Main();
@@ -251,7 +293,7 @@ namespace Ladybug3D {
 		MoveToNextFrame();*/
 	}
 
-	void D3D12HelloTriangle::GetDebugInterface()
+	void RendererV2::GetDebugInterface()
 	{
 		ComPtr<ID3D12Debug> debugInterface;
 		ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
@@ -314,7 +356,7 @@ namespace Ladybug3D {
 	//	*ppAdapter = adapter.Detach();
 	//}
 
-	void D3D12HelloTriangle::GetAdapters(bool useWarp)
+	void RendererV2::GetAdapters(bool useWarp)
 	{
 		ComPtr<IDXGIFactory4> factory;
 		UINT createFactoryFlags = 0;
@@ -337,7 +379,7 @@ namespace Ladybug3D {
 		}
 	}
 
-	void D3D12HelloTriangle::CreateDevice(IDXGIAdapter4* adapter)
+	void RendererV2::CreateDevice(IDXGIAdapter4* adapter)
 	{
 		ComPtr<ID3D12Device2> d3d12Device2;
 		ThrowIfFailed(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(m_Device.GetAddressOf())));
@@ -372,7 +414,7 @@ namespace Ladybug3D {
 #endif
 	}
 
-	void D3D12HelloTriangle::CreateCommandQueue()
+	void RendererV2::CreateCommandQueue()
 	{
 		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -381,7 +423,7 @@ namespace Ladybug3D {
 		ThrowIfFailed(m_Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_CommandQueue)));
 	}
 
-	void D3D12HelloTriangle::CreateSwapChain(HWND hwnd)
+	void RendererV2::CreateSwapChain(HWND hwnd)
 	{
 		UINT createFactoryFlags = 0;
 #if defined(_DEBUG)
@@ -414,7 +456,7 @@ namespace Ladybug3D {
 		ThrowIfFailed(swapChain1.As(&m_swapChain));
 	}
 
-	void D3D12HelloTriangle::CreateMainRTV()
+	void RendererV2::CreateMainRTV()
 	{
 		for (UINT n = 0; n < SWAPCHAIN_BUFFER_COUNT; n++)
 		{
@@ -423,7 +465,16 @@ namespace Ladybug3D {
 		}
 	}
 
-	void D3D12HelloTriangle::ClearMainRTV()
+	void RendererV2::CreateResourceView()
+	{
+		m_CbMatrix->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle());
+		m_CbTest->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(1));
+		m_SampleTexture->CreateShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(2));
+
+		m_SampleTexture->CreateShaderResourceView(m_Device.Get(), m_ImGuiDescriptorHeap->GetCpuHandle(1));
+	}
+
+	void RendererV2::ClearMainRTV()
 	{
 		for (auto& rtv : m_renderTargets) {
 			rtv.Reset();
@@ -431,7 +482,7 @@ namespace Ladybug3D {
 	}
 
 
-	void D3D12HelloTriangle::CreateRootSignature()
+	void RendererV2::CreateRootSignature()
 	{
 		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = { D3D_ROOT_SIGNATURE_VERSION_1_1 };
 		if (FAILED(m_Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
@@ -467,7 +518,7 @@ namespace Ladybug3D {
 		ThrowIfFailed(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_rootSignature.GetAddressOf())));
 	}
 
-	void D3D12HelloTriangle::RenderBegin()
+	void RendererV2::RenderBegin()
 	{
 		m_FrameIndex = m_swapChain->GetCurrentBackBufferIndex();
 
@@ -478,7 +529,7 @@ namespace Ladybug3D {
 		m_GraphicsCommandList->GetCommandList()->RSSetScissorRects(1, &m_scissorRect);
 	}
 
-	void D3D12HelloTriangle::RenderEnd()
+	void RendererV2::RenderEnd()
 	{
 		m_GraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 		m_GraphicsCommandList->Close();
@@ -487,29 +538,69 @@ namespace Ladybug3D {
 		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	}
 
-	void D3D12HelloTriangle::Pass_Main()
+	void RendererV2::Pass_Main()
 	{
 		ID3D12DescriptorHeap* ppHeaps[] = { m_ResourceDescriptorHeap->GetDescriptorHeap() };
 		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 		m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_pipelineState.Get());
-		m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
-		//m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(0, m_ResourceDescriptorHeap->GetGpuHandle(0));
-		//m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(1));
-		//m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(2, m_ResourceDescriptorHeap->GetGpuHandle(2));
+		m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(0, m_ResourceDescriptorHeap->GetGpuHandle(0));
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(1));
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(2, m_ResourceDescriptorHeap->GetGpuHandle(2));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
-		//m_CbMatrix->Data->viewProj = m_MainCam->GetViewProjectionMatrix();
+		m_CbMatrix->Data->viewProj = m_MainCam->GetViewProjectionMatrix();
 
 		for (auto& model : m_Models) {
 			for (auto& mesh : model.GetMeshes()) {
-				//m_CbMatrix->Data->world = mesh.GetWorldMatrix();
-				//m_CbMatrix->Data->worldViewProj = mesh.GetWorldMatrix() * m_MainCam->GetViewProjectionMatrix();
+				m_CbMatrix->Data->world = mesh.GetWorldMatrix();
+				m_CbMatrix->Data->worldViewProj = mesh.GetWorldMatrix() * m_MainCam->GetViewProjectionMatrix();
 				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
 				m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
 				m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
-				//m_GraphicsCommandList->GetCommandList()->DrawInstanced(3, 1, 0, 0);
 			}
 		}
 	}
+
+	void RendererV2::Pass_ImGui()
+	{
+		static bool show_demo_window = true;
+
+		ImGui_ImplDX12_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+
+		if (show_demo_window)
+			ImGui::ShowDemoWindow(&show_demo_window);
+
+		if (ImGui::Begin("Another Window"))
+		{
+			ImGui::Text("Hello from another window!");
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+			ImGui::Image((ImTextureID)(m_ImGuiDescriptorHeap->GetGpuHandle(1).ptr), ImVec2(100, 100));
+
+			ImGui::DragFloat4("Clear Color", m_ClearColor, 0.01f, 0.0f, 1.0f, "%.2f");
+			ImGui::Text("Camera Transform");
+			m_MainCam->GetTransform()->OnImGui();
+
+			ImGui::End();
+		}
+
+
+		ID3D12DescriptorHeap* heaps[] = { m_ImGuiDescriptorHeap->GetDescriptorHeap() };
+		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(heaps), heaps);
+		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
+
+		ImGui::Render();
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsCommandList->GetCommandList());
+	}
+
+	void RendererV2::ShutDownImGui()
+	{
+		ImGui_ImplDX12_Shutdown();
+		ImGui_ImplWin32_Shutdown();
+		ImGui::DestroyContext();
+	}
+
 }

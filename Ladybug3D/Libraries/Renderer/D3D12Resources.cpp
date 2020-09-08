@@ -9,7 +9,7 @@
 //
 //*********************************************************
 
-#include "DXSample.hpp"
+#include "D3D12Resources.hpp"
 
 using namespace Microsoft::WRL;
 

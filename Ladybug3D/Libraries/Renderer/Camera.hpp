@@ -27,6 +27,6 @@ namespace Ladybug3D {
 
 		float m_MoveSpeed = 6.0f;
 		float m_FastMoveSpeed = 30.0f;
-		float m_RotateSpeed = 1;
+		float m_RotateSpeed = 5;
 	};
 }
