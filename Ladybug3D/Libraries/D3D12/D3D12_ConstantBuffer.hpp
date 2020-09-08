@@ -7,15 +7,15 @@ namespace Ladybug3D::D3D12 {
 	template<typename T>
 	class ConstantBuffer : public Resource {
 	public:
-		ConstantBuffer(ID3D12Device* device);
+		ConstantBuffer(ID3D12Device* device, UINT bufferSize = 1);
 		void CreateConstantBufferView(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor);
 		T* Data;
 	};
 
 	template<typename T>
-	inline ConstantBuffer<T>::ConstantBuffer(ID3D12Device* device)
+	inline ConstantBuffer<T>::ConstantBuffer(ID3D12Device* device, UINT bufferSize)
 	{
-		CreateBuffer(device, sizeof(T), D3D12_HEAP_TYPE_UPLOAD);
+		CreateBuffer(device, sizeof(T) * bufferSize, D3D12_HEAP_TYPE_UPLOAD);
 
 		CD3DX12_RANGE readRange(0, 0);
 		ThrowIfFailed(m_Resource->Map(0, &readRange, reinterpret_cast<void**>(&Data)));
