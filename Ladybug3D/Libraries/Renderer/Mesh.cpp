@@ -66,14 +66,12 @@ namespace Ladybug3D {
 	void ProcessMesh(aiMesh* mesh, vector<Vertex3D>& vertices, vector<UINT>& indices)
 	{
 		vertices.clear();
-		indices.clear();
-		vertices.reserve(mesh->mNumVertices);
-		indices.reserve(mesh->mNumFaces * 3);
-
-		//Get vertices
+		vertices.reserve(static_cast<size_t>(mesh->mNumVertices));
+		
 		for (UINT i = 0; i < mesh->mNumVertices; i++)
 		{
-			Vertex3D vertex;
+			vertices.emplace_back();
+			auto& vertex = vertices.back();
 
 			vertex.pos.x = mesh->mVertices[i].x;
 			vertex.pos.y = mesh->mVertices[i].y;
@@ -94,11 +92,11 @@ namespace Ladybug3D {
 				vertex.uv.x = (float)mesh->mTextureCoords[0][i].x;
 				vertex.uv.y = (float)mesh->mTextureCoords[0][i].y;
 			}
-
-			vertices.push_back(vertex);
 		}
 
-		//Get indices
+		indices.clear();
+		indices.reserve(static_cast<size_t>(mesh->mNumFaces) * 3);
+
 		for (UINT i = 0; i < mesh->mNumFaces; i++)
 		{
 			aiFace face = mesh->mFaces[i];

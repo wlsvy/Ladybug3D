@@ -43,8 +43,9 @@ set_target_properties(${target}
 )
 
 target_compile_options(${target} PUBLIC 
-    /wd6001
-    /wd26495
+    /wd6001     # Uninitialized Local Variable Warning
+    /wd26495    # Uninitialized Member Variable Warning
+    /wd26812    # Unscoped Enum Warning
 )
 
 #Add Definition
