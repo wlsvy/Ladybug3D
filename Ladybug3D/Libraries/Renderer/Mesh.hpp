@@ -6,6 +6,8 @@
 #include <D3D12/D3D12_Define.hpp>
 #include <DirectXMath.h>
 #include <D3D12/D3D12_Texture.hpp>
+#include <D3D12/D3D12_VertexBuffer.hpp>
+#include <D3D12/D3D12_IndexBuffer.hpp>
 
 struct aiScene;
 struct aiNode;

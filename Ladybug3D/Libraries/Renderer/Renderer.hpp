@@ -15,6 +15,8 @@
 #include "ConstantBufferType.hpp"
 #include <D3D12/D3D12_Define.hpp>
 #include <D3D12/D3D12_ConstantBuffer.hpp>
+#include <D3D12/D3D12_VertexBuffer.hpp>
+#include <D3D12/D3D12_IndexBuffer.hpp>
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
