@@ -2,6 +2,10 @@
 #include <wrl/client.h>
 
 struct ID3D12Object;
+struct IDXGIAdapter;
+struct IDXGIAdapter1;
+struct IDXGIAdapter2;
+struct IDXGIAdapter3;
 struct IDXGIAdapter4;
 struct IDXGISwapChain3;
 struct ID3D12Device;
@@ -13,6 +17,8 @@ struct ID3D12PipelineState;
 struct ID3D12CommandList;
 struct ID3D12GraphicsCommandList;
 struct ID3D12Fence;
+struct IDXGIFactory;
+struct IDXGIFactory1;
 struct ID3D12PipelineState;
 struct ID3D12RootSignature;
 struct CD3DX12_CPU_DESCRIPTOR_HANDLE;
@@ -32,7 +38,6 @@ namespace Ladybug3D::D3D12 {
 	class Texture;
 	class VertexBuffer;
 	class IndexBuffer;
-	struct Vertex;
 
 	template<typename T>
 	class ConstantBuffer;

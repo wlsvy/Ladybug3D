@@ -1,46 +1,55 @@
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
-
 #pragma once
-
-#include <Windows.h>
-
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <D3Dcompiler.h>
-#include <DirectXMath.h>
+#include <D3D12/D3D12_Define.hpp>
 #include <D3D12/d3dx12.h>
+#include <memory>
 
-#include <string>
-#include <wrl.h>
-#include <shellapi.h>
+namespace Ladybug3D {
+    class D3D12Resources
+    {
+    public:
+        static const UINT SWAPCHAIN_BUFFER_COUNT = 2;
 
-class D3D12Resources
-{
-public:
-    D3D12Resources();
-    virtual ~D3D12Resources();
+        D3D12Resources();
+        virtual ~D3D12Resources();
 
-    UINT GetWidth() const           { return m_width; }
-    UINT GetHeight() const          { return m_height; }
+        void ResizeSwapChainBuffer(UINT width, UINT height);
 
-protected:
-    void GetHardwareAdapter(
-        _In_ IDXGIFactory1* pFactory,
-        _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter,
-        bool requestHighPerformanceAdapter = false);
+        UINT GetWidth() const { return m_width; }
+        UINT GetHeight() const { return m_height; }
 
-    UINT m_width;
-    UINT m_height;
-    float m_aspectRatio;
+    protected:
+        bool Initialize(HWND hwnd, UINT width, UINT height);
+        void CreateDevice(IDXGIAdapter4* adapter);
+        void CreateCommandQueue();
+        void CreateSwapChain(HWND hwnd);
+        void CreateMainRTV();
+        void GetDebugInterface();
+        void GetAdapters(bool useWarp);
+        void GetHardwareAdapter(
+            _In_ IDXGIFactory1* pFactory,
+            _Outptr_result_maybenull_ IDXGIAdapter1** ppAdapter,
+            bool requestHighPerformanceAdapter = false);
 
-    bool m_useWarpDevice;
-};
+        void ClearMainRTV();
+
+        Microsoft::WRL::ComPtr<ID3D12Device> m_Device;
+        Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;
+        Microsoft::WRL::ComPtr<IDXGIAdapter4> m_Adapter;
+        Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[SWAPCHAIN_BUFFER_COUNT];
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_CommandQueue;
+
+        std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_MainRTVDescriptorHeap;
+
+        UINT m_FrameIndex;
+        float m_ClearColor[4] = { 0.45f, 0.55f, 0.60f, 0.00f };
+
+        UINT m_width;
+        UINT m_height;
+        float m_aspectRatio;
+        CD3DX12_VIEWPORT m_viewport;
+        CD3DX12_RECT m_scissorRect;
+
+        bool m_useWarpDevice;
+    };
+
+}
