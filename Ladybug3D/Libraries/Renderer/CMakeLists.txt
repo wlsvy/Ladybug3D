@@ -43,6 +43,7 @@ set_target_properties(${target}
 )
 
 target_compile_options(${target} PUBLIC 
+    /wd4267     # Cast size_t type to smaller size type warning
     /wd6001     # Uninitialized Local Variable Warning
     /wd26495    # Uninitialized Member Variable Warning
     /wd26812    # Unscoped Enum Warning
