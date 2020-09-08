@@ -8,5 +8,5 @@ namespace Ladybug3D {
 
 namespace Ladybug3D::Util {
 
-	Scene& GetCurrentScene();
+	std::shared_ptr<Scene> GetCurrentScene();
 }

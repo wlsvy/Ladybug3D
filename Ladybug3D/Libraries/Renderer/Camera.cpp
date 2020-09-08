@@ -16,16 +16,19 @@ namespace Ladybug3D {
 	Camera::~Camera()
 	{
 	}
+
 	void Camera::UpdateView()
 	{
 		m_ViewMatrix = m_Transform->GetViewMatrix();
 		m_ViewProjectionMatrix = m_ViewMatrix * m_ProjectionMatrix;
 	}
+
 	void Camera::SetProjectionValues(float fovDegrees, float aspectRatio, float nearZ, float farZ)
 	{
 		float fovRadians = (fovDegrees / 360.0f) * DirectX::XM_2PI;
 		m_ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(fovRadians, aspectRatio, nearZ, farZ);
 	}
+
 	void Camera::OnUpdate()
 	{
 		float dt = 1.0f / ImGui::GetIO().Framerate;

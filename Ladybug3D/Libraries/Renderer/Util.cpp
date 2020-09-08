@@ -4,8 +4,8 @@
 
 namespace Ladybug3D::Util {
 
-	Scene& GetCurrentScene()
+	std::shared_ptr<Scene> GetCurrentScene()
 	{
-		return *Renderer::GetInstance().GetCurrentScene();
+		return Renderer::GetInstance().GetCurrentScene();
 	}
 }

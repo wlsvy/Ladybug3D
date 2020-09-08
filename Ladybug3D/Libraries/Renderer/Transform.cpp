@@ -132,7 +132,7 @@ namespace Ladybug3D {
 			return;
 		}
 
-		auto worldTransform = Util::GetCurrentScene().GetWorldTransform();
+		auto worldTransform = Util::GetCurrentScene()->GetWorldTransform();
 
 		if (target) {
 			if (m_Parent != nullptr)

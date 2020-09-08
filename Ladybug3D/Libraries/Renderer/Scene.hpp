@@ -9,7 +9,6 @@ namespace Ladybug3D {
 
 	class Scene : public Object {
 		friend class Renderer;
-		friend class Renderer;
 	public:
 		static constexpr float MAX_SIZE = 9999.0f;
 		static constexpr float MIN_SIZE = -9999.0f;

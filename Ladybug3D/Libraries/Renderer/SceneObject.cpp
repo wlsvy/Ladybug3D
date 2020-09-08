@@ -12,7 +12,7 @@ namespace Ladybug3D {
 		: Object(name)
 		, m_Transform(make_shared<Transform>(this))
 	{
-		m_Transform->SetParent(Util::GetCurrentScene().GetWorldTransform());
+		m_Transform->SetParent(Util::GetCurrentScene()->GetWorldTransform());
 	}
 	SceneObject::~SceneObject()
 	{

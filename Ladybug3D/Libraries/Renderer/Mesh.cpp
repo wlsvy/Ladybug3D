@@ -20,10 +20,6 @@ namespace Ladybug3D {
 	{
 	}
 
-	void ImGuiRootSig() {
-
-	}
-
 	void ManagerBase::CreateRootSignature(ID3D12Device* device)
 	{
 		CD3DX12_DESCRIPTOR_RANGE range[] = 
