@@ -11,6 +11,10 @@ namespace Ladybug3D {
 
     struct CB_Matrix;
     struct CB_Test;
+    struct CB_PerObject;
+    struct CB_PerScene;
+
+    constexpr UINT MAX_OBJECT_COUNT = 64;
 
     class Renderer : public D3D12Resources, public Singleton<Renderer>
     {
@@ -47,8 +51,8 @@ namespace Ladybug3D {
         std::shared_ptr<Camera> m_MainCam;
 
         std::unique_ptr<Ladybug3D::D3D12::Texture> m_SampleTexture;
-        std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_Matrix>> m_CbMatrix;
-        std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_Test>> m_CbTest;
+        std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_PerScene>> m_CB_PerScene;
+        std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_PerObject>> m_CB_PerObject;
 
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;

@@ -12,10 +12,13 @@ namespace Ladybug3D {
 		unsigned int index;
 	};
 	struct alignas(256) CB_PerObject {
-		DirectX::XMMATRIX world;
-		DirectX::XMMATRIX prevWorld;
+		DirectX::XMMATRIX worldMatrix;
+		DirectX::XMMATRIX curWvpMatrix;
+		DirectX::XMMATRIX prevWvpWorld;
 	};
 	struct alignas(256) CB_PerScene {
-		DirectX::XMMATRIX world;
+		DirectX::XMMATRIX viewMatrix;
+		DirectX::XMMATRIX projMatrix;
+		DirectX::XMMATRIX viewProjMatrix;
 	};
 }

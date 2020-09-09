@@ -9,11 +9,18 @@
 //
 //*********************************************************
 
-cbuffer cb0 : register(b0)
+cbuffer CB_PerScene : register(b0)
 {
     float4x4 g_wMatrix;
     float4x4 g_vpMatrix;
     float4x4 g_wvpMatrix;
+};
+cbuffer CB_PerObject : register(b1)
+{
+    float4x4 g_WorldMatrix;
+    float4x4 g_CurWvpMatrix;
+    float4x4 g_PrevWvpMatrix;
+
 };
 
 struct VSInput
@@ -36,9 +43,9 @@ struct PSInput
 PSInput VSMain(VSInput input)
 {
     PSInput output;
-    output.position = mul(g_wvpMatrix, float4(input.position, 1.0f));
-    output.normal = normalize(mul(input.normal, (float3x3) g_wMatrix));
-    output.tangent = normalize(mul(input.tangent, g_wMatrix));
+    output.position = mul(g_CurWvpMatrix, float4(input.position, 1.0f));
+    output.normal = normalize(mul(input.normal, (float3x3) g_WorldMatrix));
+    output.tangent = normalize(mul(input.tangent, g_WorldMatrix));
     output.uv = input.uv;
 
     return output;

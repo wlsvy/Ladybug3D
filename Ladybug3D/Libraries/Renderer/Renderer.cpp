@@ -44,6 +44,8 @@ namespace Ladybug3D {
 	bool Renderer::OnInit(HWND hwnd, UINT width, UINT height)
 	{
 		try {
+			cout << "Initialize Renderer ..." << endl;
+
 			if (!D3D12Resources::Initialize(hwnd, width, height)) {
 				return false;
 			}
@@ -52,8 +54,8 @@ namespace Ladybug3D {
 			m_ResourceDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 5);
 			m_ImGuiDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 3);
 
-			m_CbMatrix = make_unique<ConstantBuffer<CB_Matrix>>(m_Device.Get());
-			m_CbTest = make_unique<ConstantBuffer<CB_Test>>(m_Device.Get());
+			m_CB_PerObject = make_unique<ConstantBuffer<CB_PerObject>>(m_Device.Get(), MAX_OBJECT_COUNT);
+			m_CB_PerScene = make_unique<ConstantBuffer<CB_PerScene>>(m_Device.Get());
 
 			CreateRootSignature();
 			LoadAssets();
@@ -121,7 +123,8 @@ namespace Ladybug3D {
 			psoDesc.NumRenderTargets = 1;
 			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 			psoDesc.SampleDesc.Count = 1;
-			ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+			ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)),
+				"Failed To Create Pipeline State Object");
 		}
 
 		//Create Texture
@@ -177,7 +180,6 @@ namespace Ladybug3D {
 
 	void Renderer::OnUpdate()
 	{
-		m_CbTest->Data->index++;
 		m_CurrentScene->OnUpdate();
 		m_MainCam->OnUpdate();
 		m_MainCam->UpdateView();
@@ -196,6 +198,7 @@ namespace Ladybug3D {
 
 	void Renderer::OnDestroy()
 	{
+		cout << "Shut Down Renderer ..." << endl;
 		WaitForPreviousFrame();
 		Editor::ShutDownImGui();
 	}
@@ -216,11 +219,12 @@ namespace Ladybug3D {
 
 	void Renderer::CreateResourceView()
 	{
-		//CBV -> SRV -> Imgui SRV
-		m_CbMatrix->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle());
-		m_CbTest->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(1));
+		//CBV, SRV
+		m_CB_PerScene->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle());
+		m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(1));
 		m_SampleTexture->CreateShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(2));
 
+		//Imgui SRV
 		m_SampleTexture->CreateShaderResourceView(m_Device.Get(), m_ImGuiDescriptorHeap->GetCpuHandle(1));
 	}
 
@@ -232,15 +236,11 @@ namespace Ladybug3D {
 			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 		}
 
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 0);	//b0 ~ b1
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[3];
-		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
-		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
-		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
+		CD3DX12_ROOT_PARAMETER1 rootParameters[1];
+		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
 
 		CD3DX12_STATIC_SAMPLER_DESC samplerDesc[2];
 		samplerDesc[0].Init(0, D3D12_FILTER_ANISOTROPIC);
@@ -256,8 +256,10 @@ namespace Ladybug3D {
 
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
-		ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error));
-		ThrowIfFailed(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_rootSignature.GetAddressOf())));
+		ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error),
+			"Failed To Serialize RootSignature");
+		ThrowIfFailed(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_rootSignature.GetAddressOf())),
+			"Failed To Create RootSignature");
 	}
 
 	void Renderer::RenderBegin()
@@ -282,22 +284,24 @@ namespace Ladybug3D {
 
 	void Renderer::Pass_Main()
 	{
+		m_CB_PerScene->Data->viewMatrix = m_MainCam->GetViewMatrix();
+		m_CB_PerScene->Data->projMatrix = m_MainCam->GetProjectionMatrix();
+		m_CB_PerScene->Data->viewProjMatrix = m_MainCam->GetViewProjectionMatrix();
+
 		ID3D12DescriptorHeap* ppHeaps[] = { m_ResourceDescriptorHeap->GetDescriptorHeap() };
 		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 		m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_pipelineState.Get());
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
 		m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(0, m_ResourceDescriptorHeap->GetGpuHandle(0));
-		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(1));
-		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(2, m_ResourceDescriptorHeap->GetGpuHandle(2));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
-
-		m_CbMatrix->Data->viewProj = m_MainCam->GetViewProjectionMatrix();
 
 		for (auto& model : m_Models) {
 			for (auto& mesh : model.GetMeshes()) {
-				m_CbMatrix->Data->world = mesh.GetWorldMatrix();
-				m_CbMatrix->Data->worldViewProj = mesh.GetWorldMatrix() * m_MainCam->GetViewProjectionMatrix();
+				m_CB_PerObject->Data->worldMatrix = mesh.GetWorldMatrix();
+				m_CB_PerObject->Data->prevWvpWorld = m_CB_PerObject->Data->curWvpMatrix;
+				m_CB_PerObject->Data->curWvpMatrix = mesh.GetWorldMatrix() * m_MainCam->GetViewProjectionMatrix();
+
 				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
 				m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
 				m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
@@ -323,16 +327,11 @@ namespace Ladybug3D {
 			ImGui::Text("Hello from another window!");
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::Image((ImTextureID)(m_ImGuiDescriptorHeap->GetGpuHandle(1).ptr), ImVec2(100, 100));
-
 			ImGui::DragFloat4("Clear Color", m_ClearColor, 0.01f, 0.0f, 1.0f, "%.2f");
-			ImGui::Text("Camera Transform");
-			m_MainCam->GetTransform()->OnImGui();
-
 			ImGui::End();
 		}
 
 		Editor::DrawSceneGraph();
-
 		Editor::Render(m_GraphicsCommandList->GetCommandList());
 	}
 }
