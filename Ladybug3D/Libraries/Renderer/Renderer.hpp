@@ -13,8 +13,6 @@ namespace Ladybug3D {
     struct CB_PerObject;
     struct CB_PerScene;
 
-    constexpr UINT MAX_OBJECT_COUNT = 64;
-
     class Renderer : public DX12Resources, public Singleton<Renderer>
     {
     public:

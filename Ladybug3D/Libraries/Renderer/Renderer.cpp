@@ -9,21 +9,18 @@
 #include "ConstantBufferType.hpp"
 #include "Editor.hpp"
 #include "ResourceManager.hpp"
+#include "RendererDefine.hpp"
 
 #include <filesystem>
 #include <iostream>
 #include <dxgi1_6.h>
 #include <D3Dcompiler.h>
-#include <Direct12XTK/Include/ResourceUploadBatch.h>
 
 #include <D3D12/D3D12_Util.hpp>
 #include <D3D12/D3D12_CommandList.hpp>
 #include <D3D12/D3D12_DescriptorHeapAllocator.hpp>
 #include <D3D12/D3D12_Texture.hpp>
-#include <D3D12/D3D12_VertexType.hpp>
 #include <D3D12/D3D12_ConstantBuffer.hpp>
-#include <D3D12/D3D12_VertexBuffer.hpp>
-#include <D3D12/D3D12_IndexBuffer.hpp>
 
 
 using namespace std;
@@ -51,7 +48,7 @@ namespace Ladybug3D {
 			}
 
 			m_GraphicsCommandList = make_unique<GraphicsCommandList>(m_Device.Get());
-			m_ResourceDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 128);
+			m_ResourceDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, DescriptorHeapIndex::Max);
 
 			m_CB_PerObject = make_unique<ConstantBuffer<CB_PerObject>>(m_Device.Get(), MAX_OBJECT_COUNT);
 			m_CB_PerScene = make_unique<ConstantBuffer<CB_PerScene>>(m_Device.Get());
@@ -189,10 +186,10 @@ namespace Ladybug3D {
 	void Renderer::CreateResourceView()
 	{
 		//CBV, SRV
-		m_CB_PerScene->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle());
+		m_CB_PerScene->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(DescriptorHeapIndex::CB_PerScene));
 
 		for (UINT i = 0; i < MAX_OBJECT_COUNT; i++) {
-			m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(i + 1), i);
+			m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(DescriptorHeapIndex::CB_PerObject + i), i);
 		}
 	}
 
@@ -265,7 +262,7 @@ namespace Ladybug3D {
 		m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_pipelineState.Get());
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
 		m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(0, m_ResourceDescriptorHeap->GetGpuHandle(0));
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::CB_PerScene, m_ResourceDescriptorHeap->GetGpuHandle(DescriptorHeapIndex::CB_PerScene));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
 		UINT index = 0;
@@ -277,7 +274,7 @@ namespace Ladybug3D {
 				gpuObjData.worldMatrix = mesh.GetWorldMatrix() * obj->GetTransform()->GetWorldMatrix();
 				gpuObjData.prevWvpWorld = gpuObjData.curWvpMatrix;
 				gpuObjData.curWvpMatrix = gpuObjData.worldMatrix * m_MainCam->GetViewProjectionMatrix();
-				m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(1 + index));
+				m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(DescriptorHeapIndex::CB_PerObject + index));
 				index++;
 
 				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
