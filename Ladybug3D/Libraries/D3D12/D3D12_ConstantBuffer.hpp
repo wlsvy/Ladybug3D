@@ -8,7 +8,7 @@ namespace Ladybug3D::D3D12 {
 	class ConstantBuffer : public Resource {
 	public:
 		ConstantBuffer(ID3D12Device* device, UINT bufferSize = 1);
-		void CreateConstantBufferView(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor);
+		void CreateConstantBufferView(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor, UINT offset = 0);
 		T* Data;
 	};
 
@@ -22,11 +22,11 @@ namespace Ladybug3D::D3D12 {
 	}
 
 	template<typename T>
-	inline void ConstantBuffer<T>::CreateConstantBufferView(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor)
+	inline void ConstantBuffer<T>::CreateConstantBufferView(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor, UINT offset)
 	{
 		D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
-		desc.BufferLocation = m_Resource->GetGPUVirtualAddress();
 		desc.SizeInBytes = sizeof(T);
+		desc.BufferLocation = m_Resource->GetGPUVirtualAddress() + offset * desc.SizeInBytes;
 		device->CreateConstantBufferView(&desc, cpuDescriptor);
 	}
 }

@@ -22,6 +22,7 @@ namespace Ladybug3D {
 		std::shared_ptr<Camera> GetMainCam() const { return m_MainCam; }
 	
 		void OnDestroy() override;
+		auto& GetSceneObjects() const { return m_SceneObjects; }
 
 		void OnImGui() override;
 		auto GetGuiSelected() const { return m_GuiSelectedObj; }
