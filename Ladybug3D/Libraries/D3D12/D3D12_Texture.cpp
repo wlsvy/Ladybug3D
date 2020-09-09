@@ -1,10 +1,8 @@
 #include "D3D12_Texture.hpp"
 #include "D3D12_Util.hpp"
-#include "D3D12_VertexType.hpp"
 #include <Direct12XTK/Include/WICTextureLoader.h>
 #include <Direct12XTK/Include/DirectXHelpers.h>
 #include <Direct12XTK/Include/ResourceUploadBatch.h>
-#include <Direct12XTK/Include/VertexTypes.h>
 
 
 using namespace DirectX;

@@ -32,4 +32,5 @@ target_compile_options(${target} PUBLIC
     /wd6001     # Uninitialized Local Variable Warning
     /wd26495    # Uninitialized Member Variable Warning
     /wd26812    # Unscoped Enum Warning
+    /wd26451    # Arithmetic overflow Warning
 )

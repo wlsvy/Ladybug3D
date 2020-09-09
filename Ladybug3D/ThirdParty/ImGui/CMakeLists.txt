@@ -17,3 +17,7 @@ set_target_properties(${target}
     PROPERTIES
     ${DEFAULT_PROJECT_OPTIONS}
 )
+
+target_compile_options(${target} PUBLIC 
+    /wd26451    # Arithmetic overflow Warning
+)
