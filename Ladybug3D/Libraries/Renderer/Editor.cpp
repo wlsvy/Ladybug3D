@@ -1,4 +1,6 @@
 #include "Editor.hpp"
+#include "Scene.hpp"
+#include "Util.hpp"
 
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_impl_dx12.h>
@@ -8,9 +10,11 @@
 
 #include <D3D12/D3D12_DescriptorHeapAllocator.hpp>
 
+
 using namespace Ladybug3D::D3D12;
 
 namespace Ladybug3D::Editor {
+
 	void InitImGui(void* hwnd, ID3D12Device* device, UINT frameCount, DescriptorHeapAllocator* descriptor)
 	{
 		IMGUI_CHECKVERSION();
@@ -26,39 +30,55 @@ namespace Ladybug3D::Editor {
 			descriptor->GetCpuHandle(),
 			descriptor->GetGpuHandle());
 	}
-	void ImGuiBegin()
+
+	void NewFrame()
 	{
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 	}
-	void ImGuiEnd(ID3D12GraphicsCommandList* cmdList)
+
+	void Render(ID3D12GraphicsCommandList* cmdList)
 	{
 		ImGui::Render();
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdList);
 	}
+
 	void DrawSceneGraph()
 	{
-		/*static bool show_demo_window = true;
-
-		
-
-		if (show_demo_window)
-			ImGui::ShowDemoWindow(&show_demo_window);
-
-		if (ImGui::Begin("Another Window"))
-		{
-			ImGui::Text("Hello from another window!");
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			ImGui::Image((ImTextureID)(m_ImGuiDescriptorHeap->GetGpuHandle(1).ptr), ImVec2(100, 100));
-
-			ImGui::DragFloat4("Clear Color", m_ClearColor, 0.01f, 0.0f, 1.0f, "%.2f");
-			ImGui::Text("Camera Transform");
-			m_MainCam->GetTransform()->OnImGui();
-
+		if (!ImGui::Begin("Scene Graph", nullptr, ImGuiWindowFlags_NoCollapse)) {
 			ImGui::End();
-		}*/
+			return;
+		}
+
+		ImGuiIO& io = ImGui::GetIO();
+
+		ImGui::BeginChild("Editor##Hierarchy", ImVec2(io.DisplaySize.x * 0.15f, 0), true);
+		ImGui::Text("Hierarchy");
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		auto scene = Util::GetCurrentScene();
+		scene->OnImGui();
+
+		ImGui::EndChild();
+		//ImGui::SameLine();
+
+		//ImGui::BeginChild("Editor##Inspector", ImVec2(0, 0), true);
+		//ImGui::Text("Inspector");
+		//ImGui::Separator();
+		//ImGui::Spacing();
+
+
+		///*if (auto selected = scene.GetGuiSelected().lock())
+		//{
+		//	selected->GetGameObject()->OnGui();
+		//}*/
+
+		//ImGui::EndChild();
+		ImGui::End();
 	}
+
 	void ShutDownImGui()
 	{
 		ImGui_ImplDX12_Shutdown();

@@ -2,6 +2,7 @@
 #include "Scene.hpp"
 #include "Transform.hpp"
 #include "Camera.hpp"
+#include <ImGui/imgui.h>
 
 using namespace std;
 using namespace DirectX;
@@ -15,6 +16,46 @@ namespace Ladybug3D {
 	}
 	Scene::~Scene()
 	{
+	}
+
+	void Scene::ProcessGuiHirarchy(std::shared_ptr<Transform> transform)
+	{
+		bool check = false;
+		if (auto selected = m_GuiSelectedObj.lock())
+		{
+			check = selected == transform;
+		}
+
+		ImGuiTreeNodeFlags nodeFlags =
+			ImGuiTreeNodeFlags_OpenOnArrow
+			| ImGuiTreeNodeFlags_OpenOnDoubleClick
+			| (check ? ImGuiTreeNodeFlags_Selected : 0)
+			| (transform->GetChildNum() == 0 ? ImGuiTreeNodeFlags_Leaf : 0)
+			| ImGuiTreeNodeFlags_DefaultOpen;
+
+		bool isNodeOpen = ImGui::TreeNodeEx(transform->GetSceneObject()->Name.c_str(), nodeFlags);
+		if (ImGui::IsItemClicked())
+		{
+			m_GuiSelectedObj = transform;
+		}
+
+		if (isNodeOpen)
+		{
+			for (auto child : transform->m_Children)
+			{
+				ProcessGuiHirarchy(child);
+			}
+			ImGui::TreePop();
+		}
+	}
+
+	void Scene::OnImGui()
+	{
+		for (auto child : m_WorldTransform->m_Children)
+		{
+			ProcessGuiHirarchy(child);
+		}
+		ImGui::Spacing();
 	}
 
 	void Scene::Initialize()

@@ -14,6 +14,7 @@
 #include <dxgi1_6.h>
 #include <D3Dcompiler.h>
 #include <ImGui/imgui.h>
+#include <Direct12XTK/Include/ResourceUploadBatch.h>
 
 #include <D3D12/D3D12_Util.hpp>
 #include <D3D12/D3D12_CommandList.hpp>
@@ -24,7 +25,6 @@
 #include <D3D12/D3D12_VertexBuffer.hpp>
 #include <D3D12/D3D12_IndexBuffer.hpp>
 
-#include <Direct12XTK/Include/ResourceUploadBatch.h>
 
 using namespace std;
 using namespace DirectX;
@@ -311,7 +311,7 @@ namespace Ladybug3D {
 		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(heaps), heaps);
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
-		Editor::ImGuiBegin();
+		Editor::NewFrame();
 
 		static bool show_demo_window = true;
 
@@ -331,6 +331,8 @@ namespace Ladybug3D {
 			ImGui::End();
 		}
 
-		Editor::ImGuiEnd(m_GraphicsCommandList->GetCommandList());
+		Editor::DrawSceneGraph();
+
+		Editor::Render(m_GraphicsCommandList->GetCommandList());
 	}
 }
