@@ -310,11 +310,13 @@ namespace Ladybug3D {
 
 	void Renderer::Pass_ImGui()
 	{
-		static bool show_demo_window = true;
+		ID3D12DescriptorHeap* heaps[] = { m_ImGuiDescriptorHeap->GetDescriptorHeap() };
+		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(heaps), heaps);
+		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
-		ImGui_ImplDX12_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
+		Editor::ImGuiBegin();
+
+		static bool show_demo_window = true;
 
 		if (show_demo_window)
 			ImGui::ShowDemoWindow(&show_demo_window);
@@ -332,12 +334,6 @@ namespace Ladybug3D {
 			ImGui::End();
 		}
 
-
-		ID3D12DescriptorHeap* heaps[] = { m_ImGuiDescriptorHeap->GetDescriptorHeap() };
-		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(heaps), heaps);
-		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
-
-		ImGui::Render();
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsCommandList->GetCommandList());
+		Editor::ImGuiEnd(m_GraphicsCommandList->GetCommandList());
 	}
 }

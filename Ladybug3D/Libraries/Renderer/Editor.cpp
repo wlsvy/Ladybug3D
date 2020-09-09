@@ -26,13 +26,22 @@ namespace Ladybug3D::Editor {
 			descriptor->GetCpuHandle(),
 			descriptor->GetGpuHandle());
 	}
+	void ImGuiBegin()
+	{
+		ImGui_ImplDX12_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+	}
+	void ImGuiEnd(ID3D12GraphicsCommandList* cmdList)
+	{
+		ImGui::Render();
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdList);
+	}
 	void DrawSceneGraph()
 	{
 		/*static bool show_demo_window = true;
 
-		ImGui_ImplDX12_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
+		
 
 		if (show_demo_window)
 			ImGui::ShowDemoWindow(&show_demo_window);
