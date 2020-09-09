@@ -21,6 +21,9 @@ namespace Ladybug3D {
 		~ResourceManager();
 
 		bool Initialize();
+		auto& GetTextureMap() const { return m_TextureMap; }
+		auto& GetModelMap() const { return m_ModelMap; }
+		auto GetModel(const std::string& name) { return m_ModelMap[name]; }
 
 	private:
 		void LoadTextures();

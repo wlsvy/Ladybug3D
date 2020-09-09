@@ -63,7 +63,10 @@ namespace Ladybug3D {
 			CreateResourceView();
 			Editor::InitImGui(hwnd, m_Device.Get(), SWAPCHAIN_BUFFER_COUNT, m_ImGuiDescriptorHeap.get());
 
+			auto& r = ResourceManager::GetInstance();
+
 			m_CurrentScene = make_shared<Scene>();
+			m_CurrentScene->Initialize();
 			m_Test = make_shared<SceneObject>();
 			m_MainCam = make_shared<Camera>();
 			m_MainCam->SetProjectionValues(90.0f, m_aspectRatio, 0.1f, 1000.0f);
@@ -129,25 +132,7 @@ namespace Ladybug3D {
 				"Failed To Create Pipeline State Object");
 		}
 
-		//Create Texture
-		{
-			DirectX::ResourceUploadBatch uploadBatch(m_Device.Get());
-			uploadBatch.Begin();
-
-			for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
-				if (resource.path().extension() == L".png") {
-					cout << "Find Texture At " << resource << endl;
-				}
-			}
-
-			string textureDir = LADYBUG3D_RESOURCE_PATH;
-			textureDir += "/Texture/Sample.png";
-			wstring wstr(textureDir.begin(), textureDir.end());
-			m_SampleTexture = make_unique<Texture>();
-			m_SampleTexture->InitializeWICTexture(wstr.c_str(), uploadBatch, m_Device.Get());
-			auto finish = uploadBatch.End(m_CommandQueue.Get());
-			finish.wait();
-		}
+		
 
 
 		// Create the vertex buffer.
@@ -180,6 +165,26 @@ namespace Ladybug3D {
 			ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
 			m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 			WaitForPreviousFrame();
+		}
+
+		//Create Texture
+		{
+			DirectX::ResourceUploadBatch uploadBatch(m_Device.Get());
+			uploadBatch.Begin();
+
+			for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
+				if (resource.path().extension() == L".png") {
+					cout << "Find Texture At " << resource << endl;
+				}
+			}
+
+			string textureDir = LADYBUG3D_RESOURCE_PATH;
+			textureDir += "/Texture/Sample.png";
+			wstring wstr(textureDir.begin(), textureDir.end());
+			m_SampleTexture = make_unique<Texture>();
+			m_SampleTexture->InitializeWICTexture(wstr.c_str(), uploadBatch, m_Device.Get());
+			auto finish = uploadBatch.End(m_CommandQueue.Get());
+			finish.wait();
 		}
 	}
 

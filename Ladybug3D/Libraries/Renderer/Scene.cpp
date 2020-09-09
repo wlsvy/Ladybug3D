@@ -3,6 +3,7 @@
 #include "SceneObject.hpp"
 #include "Transform.hpp"
 #include "Camera.hpp"
+#include "ResourceManager.hpp"
 #include <ImGui/imgui.h>
 
 using namespace std;
@@ -60,9 +61,16 @@ namespace Ladybug3D {
 
 	void Scene::Initialize()
 	{
-		m_SceneObjects.emplace_back(make_shared<SceneObject>("Sample Object 0"));
+		auto& modelMap = ResourceManager::GetInstance().GetModelMap();
+		auto& resourceManager = ResourceManager::GetInstance();
+
+		m_SceneObjects.emplace_back(make_shared<SceneObject>("Sample Cone"));
 		m_SceneObjects.back()->GetTransform()->SetPosition(3.0f, .0f, 3.0f);
-		//m_SceneObjects.back()->Model = 
+		m_SceneObjects.back()->Model = resourceManager.GetModel("cone");
+
+		m_SceneObjects.emplace_back(make_shared<SceneObject>("Sample Cube"));
+		m_SceneObjects.back()->GetTransform()->SetPosition(-3.0f, .0f, 3.0f);
+		m_SceneObjects.back()->Model = resourceManager.GetModel("cube");
 	}
 
 	void Scene::OnUpdate()
