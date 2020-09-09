@@ -13,10 +13,7 @@
 #include <iostream>
 #include <dxgi1_6.h>
 #include <D3Dcompiler.h>
-
 #include <ImGui/imgui.h>
-#include <ImGui/imgui_impl_dx12.h>
-#include <ImGui/imgui_impl_win32.h>
 
 #include <D3D12/D3D12_Util.hpp>
 #include <D3D12/D3D12_CommandList.hpp>
