@@ -1,5 +1,5 @@
 #pragma once
-#include "D3D12Resources.hpp"
+#include "DX12Resources.hpp"
 #include "Singleton.hpp"
 
 namespace Ladybug3D {
@@ -15,7 +15,7 @@ namespace Ladybug3D {
 
     constexpr UINT MAX_OBJECT_COUNT = 64;
 
-    class Renderer : public D3D12Resources, public Singleton<Renderer>
+    class Renderer : public DX12Resources, public Singleton<Renderer>
     {
     public:
         Renderer();

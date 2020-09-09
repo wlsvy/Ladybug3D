@@ -4,13 +4,13 @@
 #include <memory>
 
 namespace Ladybug3D {
-    class D3D12Resources
+    class DX12Resources
     {
     public:
         static const UINT SWAPCHAIN_BUFFER_COUNT = 2;
 
-        D3D12Resources();
-        virtual ~D3D12Resources();
+        DX12Resources();
+        virtual ~DX12Resources();
 
         void ResizeSwapChainBuffer(UINT width, UINT height);
 

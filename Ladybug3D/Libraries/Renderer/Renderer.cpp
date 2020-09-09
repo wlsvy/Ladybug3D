@@ -46,7 +46,7 @@ namespace Ladybug3D {
 		try {
 			cout << "Initialize Renderer ..." << endl;
 
-			if (!D3D12Resources::Initialize(hwnd, width, height)) {
+			if (!DX12Resources::Initialize(hwnd, width, height)) {
 				return false;
 			}
 
