@@ -8,11 +8,12 @@ namespace Ladybug3D {
 
 	class SceneObject : public Object {
 	public:
-		SceneObject(const std::string& name = "GameObject");
+		SceneObject(const std::string& name = "SceneObject");
 		~SceneObject();
 
 		auto& GetTransform() { return m_Transform; }
-		
+		void OnImGui() override;
+
 		std::shared_ptr<Model> Model;
 
 	protected:
