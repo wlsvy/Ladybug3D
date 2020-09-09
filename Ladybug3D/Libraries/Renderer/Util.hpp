@@ -1,5 +1,5 @@
 #pragma once
-#include "Object.hpp"
+#include <memory>
 
 namespace Ladybug3D {
 	class Scene;
