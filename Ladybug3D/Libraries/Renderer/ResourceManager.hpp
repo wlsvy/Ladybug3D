@@ -9,10 +9,6 @@
 
 namespace Ladybug3D {
 
-	namespace D3D12 {
-		class Texture;
-	}
-
 	class Model;
 
 	class ResourceManager : public Singleton<ResourceManager> {
@@ -34,6 +30,6 @@ namespace Ladybug3D {
 		std::unordered_map<std::string, std::shared_ptr<D3D12::Texture>> m_TextureMap;
 	};
 
-	std::shared_ptr<Model> LoadModel(const std::string& filePath, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
+	std::shared_ptr<Model> LoadModel(const std::string& filePath, ID3D12Device* device, D3D12::GraphicsCommandList* cmdList);
 
 }

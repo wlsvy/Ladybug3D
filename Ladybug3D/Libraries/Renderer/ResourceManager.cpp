@@ -71,7 +71,7 @@ namespace Ladybug3D {
 	void ResourceManager::LoadModels()
 	{
 		auto device = Renderer::GetInstance().GetDevice();
-		auto cmdList = Renderer::GetInstance().GetGraphicsCommandList()->GetCommandList();
+		auto cmdList = Renderer::GetInstance().GetGraphicsCommandList();
 
 		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
 			if (auto extension = resource.path().extension(); 
@@ -138,19 +138,48 @@ namespace Ladybug3D {
 
 	class ModelImporter {
 	public:
-		ModelImporter(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList) : m_Device(device), m_CommandList(cmdList) {}
+		ModelImporter(ID3D12Device* device, GraphicsCommandList* cmdList) : m_Device(device), m_CommandList(cmdList) {}
 		shared_ptr<Model> CreateModel(const std::string& filePath, const aiScene* scene);
 
 	private:
 		void ProcessNode(aiNode* node, const aiScene* scene, const DirectX::XMMATRIX& parentTransformMatrix);
 
 		ID3D12Device* m_Device;
-		ID3D12GraphicsCommandList* m_CommandList;
+		GraphicsCommandList* m_CommandList;
 		std::vector<Mesh> m_Meshes;
 		std::shared_ptr<Mesh> m_Mesh;
 	};
 
-	shared_ptr<Model> LoadModel(const std::string& filePath, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+	
+	void ModelImporter::ProcessNode(aiNode* node, const aiScene* scene, const DirectX::XMMATRIX& parentTransformMatrix)
+	{
+		DirectX::XMMATRIX nodeTransformMatrix = DirectX::XMMatrixTranspose(DirectX::XMMATRIX(&node->mTransformation.a1)) * parentTransformMatrix;
+
+		for (UINT i = 0; i < node->mNumMeshes; i++)
+		{
+			aiMesh* aimesh = scene->mMeshes[node->mMeshes[i]];
+			vector<Vertex3D> vertices;
+			vector<UINT> indices;
+			ProcessMesh(aimesh, vertices, indices);
+			auto mesh = Mesh(
+				make_shared<VertexBuffer>(m_Device, m_CommandList, vertices),
+				make_shared<IndexBuffer>(m_Device, m_CommandList, indices),
+				nodeTransformMatrix);
+			m_Meshes.push_back(mesh);
+		}
+
+		for (UINT i = 0; i < node->mNumChildren; i++)
+		{
+			ProcessNode(node->mChildren[i], scene, nodeTransformMatrix);
+		}
+	}
+	shared_ptr<Model> ModelImporter::CreateModel(const std::string& filePath, const aiScene* scene)
+	{
+		this->ProcessNode(scene->mRootNode, scene, DirectX::XMMatrixIdentity());
+		return make_shared<Model>(move(m_Meshes));
+	}
+
+	shared_ptr<Model> LoadModel(const std::string& filePath, ID3D12Device* device, GraphicsCommandList* cmdList)
 	{
 		const auto importer_flags =
 			aiProcess_MakeLeftHanded |              // directx style.
@@ -186,33 +215,5 @@ namespace Ladybug3D {
 
 		auto modelImporter = ModelImporter(device, cmdList);
 		return modelImporter.CreateModel(filePath, pScene);
-		//return true;
-	}
-	void ModelImporter::ProcessNode(aiNode* node, const aiScene* scene, const DirectX::XMMATRIX& parentTransformMatrix)
-	{
-		DirectX::XMMATRIX nodeTransformMatrix = DirectX::XMMatrixTranspose(DirectX::XMMATRIX(&node->mTransformation.a1)) * parentTransformMatrix;
-
-		for (UINT i = 0; i < node->mNumMeshes; i++)
-		{
-			aiMesh* aimesh = scene->mMeshes[node->mMeshes[i]];
-			vector<Vertex3D> vertices;
-			vector<UINT> indices;
-			ProcessMesh(aimesh, vertices, indices);
-			auto mesh = Mesh(
-				make_shared<VertexBuffer>(m_Device, m_CommandList, vertices),
-				make_shared<IndexBuffer>(m_Device, m_CommandList, indices),
-				nodeTransformMatrix);
-			m_Meshes.push_back(mesh);
-		}
-
-		for (UINT i = 0; i < node->mNumChildren; i++)
-		{
-			ProcessNode(node->mChildren[i], scene, nodeTransformMatrix);
-		}
-	}
-	shared_ptr<Model> ModelImporter::CreateModel(const std::string& filePath, const aiScene* scene)
-	{
-		this->ProcessNode(scene->mRootNode, scene, DirectX::XMMatrixIdentity());
-		return make_shared<Model>(move(m_Meshes));
 	}
 }

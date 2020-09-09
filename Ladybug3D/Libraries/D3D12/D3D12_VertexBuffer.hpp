@@ -8,16 +8,15 @@ namespace Ladybug3D::D3D12 {
 	public:
 
 		template<typename VertexType>
-		VertexBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, const std::vector<VertexType>& vertices) {
+		VertexBuffer(ID3D12Device* device, GraphicsCommandList* cmdList, const std::vector<VertexType>& vertices) {
 			CreateVertexBuffer(device, cmdList, vertices.size(), sizeof(VertexType), vertices.data());
 		}
 
 		const auto GetView() const { return &m_VertexBufferView; }
 
 	private:
-		void CreateVertexBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, UINT vertexCount, UINT vertexTypeSize, const void* data);
+		void CreateVertexBuffer(ID3D12Device* device, GraphicsCommandList* cmdList, UINT vertexCount, UINT vertexTypeSize, const void* data);
 
 		D3D12_VERTEX_BUFFER_VIEW m_VertexBufferView;
-		Microsoft::WRL::ComPtr<ID3D12Resource> m_BufferUploadHeap;
 	};
 }

@@ -25,8 +25,10 @@ struct CD3DX12_CPU_DESCRIPTOR_HANDLE;
 struct D3D12_CPU_DESCRIPTOR_HANDLE;
 struct CD3DX12_GPU_DESCRIPTOR_HANDLE;
 struct D3D12_GPU_DESCRIPTOR_HANDLE;
+struct D3D12_RESOURCE_BARRIER;
 
 using SIZE_T = unsigned __int64;
+using UCHAR = unsigned char;
 using UINT = unsigned int;
 using UINT64 = unsigned long long;
 using LPCWSTR = const wchar_t*;

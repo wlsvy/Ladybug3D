@@ -4,8 +4,6 @@
 #include "D3D12_Util.hpp"
 
 namespace Ladybug3D::D3D12 {
-	CommandList::CommandList() {}
-	CommandList::~CommandList() {}
 
 	GraphicsCommandList::GraphicsCommandList(ID3D12Device* device)
 	{
@@ -29,6 +27,8 @@ namespace Ladybug3D::D3D12 {
 	{
 		ThrowIfFailed(m_CommandAllocator->Reset());
 		ThrowIfFailed(m_CommandList->Reset(m_CommandAllocator.Get(), pipelineState));
+		m_TrackedObject.clear();
+
 		return true;
 	}
 
@@ -54,5 +54,9 @@ namespace Ladybug3D::D3D12 {
 		bool isSingleToRange)
 	{
 		m_CommandList->OMSetRenderTargets(numDesriptors, rtv, isSingleToRange, dsv);
+	}
+	void GraphicsCommandList::TrackObject(const Microsoft::WRL::ComPtr<ID3D12Object>& obj)
+	{
+		m_TrackedObject.push_back(obj);
 	}
 }
