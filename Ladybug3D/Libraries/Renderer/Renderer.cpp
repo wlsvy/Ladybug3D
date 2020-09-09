@@ -14,7 +14,6 @@
 #include <iostream>
 #include <dxgi1_6.h>
 #include <D3Dcompiler.h>
-#include <ImGui/imgui.h>
 #include <Direct12XTK/Include/ResourceUploadBatch.h>
 
 #include <D3D12/D3D12_Util.hpp>
@@ -53,7 +52,6 @@ namespace Ladybug3D {
 
 			m_GraphicsCommandList = make_unique<GraphicsCommandList>(m_Device.Get());
 			m_ResourceDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 128);
-			m_ImGuiDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 3);
 
 			m_CB_PerObject = make_unique<ConstantBuffer<CB_PerObject>>(m_Device.Get(), MAX_OBJECT_COUNT);
 			m_CB_PerScene = make_unique<ConstantBuffer<CB_PerScene>>(m_Device.Get());
@@ -61,10 +59,11 @@ namespace Ladybug3D {
 			CreateRootSignature();
 			LoadAssets();
 			CreateResourceView();
-			Editor::InitImGui(hwnd, m_Device.Get(), SWAPCHAIN_BUFFER_COUNT, m_ImGuiDescriptorHeap.get());
 
 			m_CurrentScene = make_shared<Scene>();
 			m_CurrentScene->Initialize();
+			m_Editor = make_unique<Editor>();
+			m_Editor->Initialize(hwnd, m_Device.Get(), SWAPCHAIN_BUFFER_COUNT);
 			m_MainCam = make_shared<Camera>();
 			m_MainCam->SetProjectionValues(90.0f, m_aspectRatio, 0.1f, 1000.0f);
 		}
@@ -157,7 +156,7 @@ namespace Ladybug3D {
 	{
 		RenderBegin();
 		Pass_Main();
-		Pass_ImGui();
+		Pass_Editor();
 		RenderEnd();
 
 		ThrowIfFailed(m_swapChain->Present(1, 0));
@@ -168,9 +167,9 @@ namespace Ladybug3D {
 	{
 		cout << "Shut Down Renderer ..." << endl;
 		WaitForPreviousFrame();
-		m_CurrentScene->OnDestroy();
 
-		Editor::ShutDownImGui();
+		m_CurrentScene->OnDestroy();
+		m_Editor->ShutDownImGui();
 	}
 
 	void Renderer::WaitForPreviousFrame()
@@ -195,9 +194,6 @@ namespace Ladybug3D {
 		for (UINT i = 0; i < MAX_OBJECT_COUNT; i++) {
 			m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(i + 1), i);
 		}
-
-		//Imgui SRV
-		ResourceManager::GetInstance().GetTexture("Sample")->CreateShaderResourceView(m_Device.Get(), m_ImGuiDescriptorHeap->GetCpuHandle(1));
 	}
 
 	void Renderer::CreateRootSignature()
@@ -291,29 +287,15 @@ namespace Ladybug3D {
 		}
 	}
 
-	void Renderer::Pass_ImGui()
+	void Renderer::Pass_Editor()
 	{
-		ID3D12DescriptorHeap* heaps[] = { m_ImGuiDescriptorHeap->GetDescriptorHeap() };
+		ID3D12DescriptorHeap* heaps[] = { m_Editor->GetDescriptorHeap() };
 		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(heaps), heaps);
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
-		Editor::NewFrame();
-
-		static bool show_demo_window = true;
-
-		if (show_demo_window)
-			ImGui::ShowDemoWindow(&show_demo_window);
-
-		if (ImGui::Begin("Another Window"))
-		{
-			ImGui::Text("Hello from another window!");
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			ImGui::Image((ImTextureID)(m_ImGuiDescriptorHeap->GetGpuHandle(1).ptr), ImVec2(100, 100));
-			ImGui::DragFloat4("Clear Color", m_ClearColor, 0.01f, 0.0f, 1.0f, "%.2f");
-			ImGui::End();
-		}
-
-		Editor::DrawSceneGraph();
-		Editor::Render(m_GraphicsCommandList->GetCommandList());
+		m_Editor->NewFrame();
+		m_Editor->DrawSampleWindow();
+		m_Editor->DrawSceneGraph();
+		m_Editor->Render(m_GraphicsCommandList->GetCommandList());
 	}
 }
