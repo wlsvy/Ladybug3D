@@ -17,7 +17,7 @@ namespace Ladybug3D {
 		friend class Scene;
 	public:
 		Transform();
-		Transform(const SceneObject* sceneObj);
+		Transform(SceneObject* sceneObj);
 		~Transform();
 
 		void SetPosition(const DirectX::XMVECTOR& pos) { positionVec = pos; }
@@ -58,9 +58,9 @@ namespace Ladybug3D {
 		size_t GetChildNum() const { return m_Children.size(); }
 
 		void SetParent(const std::shared_ptr<Transform>& transform);
-		bool HaveChildTransform(Transform* _transform);
+		bool HaveChildTransform(Transform* _transform) const;
 
-		auto GetSceneObject() { return m_SceneObject; }
+		auto GetSceneObject() const { return m_SceneObject; }
 		void OnImGui() override;
 
 		union {
@@ -114,7 +114,7 @@ namespace Ladybug3D {
 
 		std::shared_ptr<Transform> m_Parent;
 		std::vector<std::shared_ptr<Transform>> m_Children;
-		const SceneObject* m_SceneObject;
+		SceneObject* const m_SceneObject;
 	};
 
 }

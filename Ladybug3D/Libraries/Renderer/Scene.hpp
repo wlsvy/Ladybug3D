@@ -20,15 +20,16 @@ namespace Ladybug3D {
 		std::shared_ptr<Camera> GetMainCam() const { return m_MainCam; }
 	
 		void OnImGui() override;
+		auto GetGuiSelected() const { return m_GuiSelectedObj; }
 
 	private:
 		void Initialize();
 		void OnUpdate() override;
-		void ProcessGuiHirarchy(std::shared_ptr<Transform>);
+		void ProcessGuiHirarchy(std::shared_ptr<Transform>) const;
 
 		std::shared_ptr<Transform> m_WorldTransform;
 		std::shared_ptr<Camera> m_MainCam;
 
-		std::weak_ptr<Transform> m_GuiSelectedObj;
+		mutable std::weak_ptr<Transform> m_GuiSelectedObj;
 	};
 }

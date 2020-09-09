@@ -18,7 +18,7 @@ namespace Ladybug3D {
 	{
 	}
 
-	void Scene::ProcessGuiHirarchy(std::shared_ptr<Transform> transform)
+	void Scene::ProcessGuiHirarchy(std::shared_ptr<Transform> transform) const
 	{
 		bool check = false;
 		if (auto selected = m_GuiSelectedObj.lock())

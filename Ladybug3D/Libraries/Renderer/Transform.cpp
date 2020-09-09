@@ -22,9 +22,10 @@ namespace Ladybug3D {
 
 	Transform::Transform()
 		: Object("Transform")
+		, m_SceneObject(nullptr)
 	{
 	}
-	Transform::Transform(const SceneObject* sceneObj)
+	Transform::Transform(SceneObject* sceneObj)
 		: Object("Transform")
 		, m_SceneObject(sceneObj)
 	{
@@ -153,7 +154,7 @@ namespace Ladybug3D {
 		}
 	}
 
-	bool Transform::HaveChildTransform(Transform* target)
+	bool Transform::HaveChildTransform(Transform* target) const
 	{
 		//find(m_Children.cbegin(), m_Children.cend(), target);
 		for (auto& child : m_Children) {

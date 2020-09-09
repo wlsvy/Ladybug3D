@@ -1,5 +1,7 @@
 #include "Editor.hpp"
 #include "Scene.hpp"
+#include "SceneObject.hpp"
+#include "Transform.hpp"
 #include "Util.hpp"
 
 #include <ImGui/imgui.h>
@@ -62,20 +64,20 @@ namespace Ladybug3D::Editor {
 		scene->OnImGui();
 
 		ImGui::EndChild();
-		//ImGui::SameLine();
+		ImGui::SameLine();
 
-		//ImGui::BeginChild("Editor##Inspector", ImVec2(0, 0), true);
-		//ImGui::Text("Inspector");
-		//ImGui::Separator();
-		//ImGui::Spacing();
+		ImGui::BeginChild("Editor##Inspector", ImVec2(0, 0), true);
+		ImGui::Text("Inspector");
+		ImGui::Separator();
+		ImGui::Spacing();
 
 
-		///*if (auto selected = scene.GetGuiSelected().lock())
-		//{
-		//	selected->GetGameObject()->OnGui();
-		//}*/
+		if (auto selected = scene->GetGuiSelected().lock())
+		{
+			selected->GetSceneObject()->OnImGui();
+		}
 
-		//ImGui::EndChild();
+		ImGui::EndChild();
 		ImGui::End();
 	}
 
