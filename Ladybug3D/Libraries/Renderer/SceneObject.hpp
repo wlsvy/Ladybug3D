@@ -4,6 +4,7 @@
 namespace Ladybug3D {
 
 	class Transform;
+	class Model;
 
 	class SceneObject : public Object {
 	public:
@@ -11,6 +12,8 @@ namespace Ladybug3D {
 		~SceneObject();
 
 		auto& GetTransform() { return m_Transform; }
+		
+		std::shared_ptr<Model> Model;
 
 	protected:
 		std::shared_ptr<Transform> m_Transform;

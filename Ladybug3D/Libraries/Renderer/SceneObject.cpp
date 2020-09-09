@@ -3,6 +3,7 @@
 #include "Transform.hpp"
 #include "Util.hpp"
 #include "Scene.hpp"
+#include "Model.hpp"
 
 using namespace std;
 

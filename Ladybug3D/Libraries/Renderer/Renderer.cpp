@@ -1,5 +1,7 @@
 #include "Renderer.hpp"
+#include "ResourceManager.hpp"
 #include "Mesh.hpp"
+#include "Model.hpp"
 #include "Scene.hpp"
 #include "SceneObject.hpp"
 #include "Camera.hpp"
