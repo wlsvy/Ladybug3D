@@ -7,6 +7,7 @@
 #include "Camera.hpp"
 #include "Transform.hpp"
 #include "ConstantBufferType.hpp"
+#include "Editor.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -60,7 +61,7 @@ namespace Ladybug3D {
 			CreateRootSignature();
 			LoadAssets();
 			CreateResourceView();
-			InitImGui(hwnd);
+			Editor::InitImGui(hwnd, m_Device.Get(), SWAPCHAIN_BUFFER_COUNT, m_ImGuiDescriptorHeap.get());
 
 			m_CurrentScene = make_shared<Scene>();
 			m_Test = make_shared<SceneObject>();
@@ -75,23 +76,6 @@ namespace Ladybug3D {
 		}
 		return true;
 	}
-
-	void Renderer::InitImGui(HWND hwnd)
-	{
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGui::StyleColorsDark();
-
-		ImGui_ImplWin32_Init(hwnd);
-		ImGui_ImplDX12_Init(
-			m_Device.Get(),
-			SWAPCHAIN_BUFFER_COUNT,
-			DXGI_FORMAT_R8G8B8A8_UNORM,
-			m_ImGuiDescriptorHeap->GetDescriptorHeap(),
-			m_ImGuiDescriptorHeap->GetCpuHandle(),
-			m_ImGuiDescriptorHeap->GetGpuHandle());
-	}
-
 
 	void Renderer::LoadAssets()
 	{
@@ -216,7 +200,7 @@ namespace Ladybug3D {
 	void Renderer::OnDestroy()
 	{
 		WaitForPreviousFrame();
-		ShutDownImGui();
+		Editor::ShutDownImGui();
 	}
 
 	void Renderer::WaitForPreviousFrame()
@@ -356,12 +340,4 @@ namespace Ladybug3D {
 		ImGui::Render();
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_GraphicsCommandList->GetCommandList());
 	}
-
-	void Renderer::ShutDownImGui()
-	{
-		ImGui_ImplDX12_Shutdown();
-		ImGui_ImplWin32_Shutdown();
-		ImGui::DestroyContext();
-	}
-
 }

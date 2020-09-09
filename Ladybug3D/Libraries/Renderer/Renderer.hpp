@@ -26,7 +26,6 @@ namespace Ladybug3D {
         auto GetCurrentScene() const { return m_CurrentScene; }
 
     private:
-        void InitImGui(HWND hwnd);
         void CreateRootSignature();
         void LoadAssets();
         void CreateResourceView();
@@ -37,7 +36,6 @@ namespace Ladybug3D {
         void Pass_ImGui();
         void WaitForPreviousFrame();
 
-        void ShutDownImGui();
 
         std::unique_ptr<Ladybug3D::D3D12::GraphicsCommandList> m_GraphicsCommandList;
         std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_ResourceDescriptorHeap;
