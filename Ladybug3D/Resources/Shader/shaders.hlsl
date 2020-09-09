@@ -11,9 +11,9 @@
 
 cbuffer CB_PerScene : register(b0)
 {
-    float4x4 g_wMatrix;
-    float4x4 g_vpMatrix;
-    float4x4 g_wvpMatrix;
+    float4x4 g_ViewMatrix;
+    float4x4 g_ProjMatrix;
+    float4x4 g_ViewProjMatrix;
 };
 cbuffer CB_PerObject : register(b1)
 {

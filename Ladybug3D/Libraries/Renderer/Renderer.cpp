@@ -134,47 +134,17 @@ namespace Ladybug3D {
 		
 
 
-		// Create the vertex buffer.
+		// Load Model
 		{
 			m_GraphicsCommandList->Begin();
 
 			resourceManager.Initialize();
 
-			vector<Vertex3D> triangleVertices =
-			{
-				{ { 0.0f, 5.0f * m_aspectRatio, 5.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f }},
-				{ { 5.0f, -5.0f * m_aspectRatio, 5.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f } },
-				{ { -5.0f, -5.0f * m_aspectRatio, 5.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 0.0f } },
-			};
-			vector<UINT> indexList = { 0, 1, 2 };
-			auto vertexBuffer = make_shared<VertexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), triangleVertices);
-			auto indexBuffer = make_shared<IndexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), indexList);
-			Mesh m = Mesh(vertexBuffer, indexBuffer, DirectX::XMMatrixIdentity());
-			m_Models.emplace_back(make_shared<Model>(m));
 			m_GraphicsCommandList->Close();
+
 			ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
 			m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 			WaitForPreviousFrame();
-		}
-
-		//Create Texture
-		{
-			DirectX::ResourceUploadBatch uploadBatch(m_Device.Get());
-			uploadBatch.Begin();
-
-			for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
-				if (resource.path().extension() == L".png") {
-					cout << "Find Texture At " << resource << endl;
-				}
-			}
-
-			string textureDir = LADYBUG3D_RESOURCE_PATH;
-			textureDir += "/Texture/Sample.png";
-			wstring wstr(textureDir.begin(), textureDir.end());
-			m_SampleTexture = make_unique<Texture>();
-			m_SampleTexture->InitializeWICTexture(wstr.c_str(), uploadBatch, m_Device.Get());
-			auto finish = uploadBatch.End(m_CommandQueue.Get());
-			finish.wait();
 		}
 	}
 
@@ -228,12 +198,8 @@ namespace Ladybug3D {
 			m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(i + 1), i);
 		}
 
-
-		//m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(1));
-		//m_SampleTexture->CreateShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(2));
-
 		//Imgui SRV
-		m_SampleTexture->CreateShaderResourceView(m_Device.Get(), m_ImGuiDescriptorHeap->GetCpuHandle(1));
+		ResourceManager::GetInstance().GetTexture("Sample")->CreateShaderResourceView(m_Device.Get(), m_ImGuiDescriptorHeap->GetCpuHandle(1));
 	}
 
 	void Renderer::CreateRootSignature()
@@ -308,24 +274,15 @@ namespace Ladybug3D {
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(0, m_ResourceDescriptorHeap->GetGpuHandle(0));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
-		for (auto& model : m_Models) {
-			for (auto& mesh : model->GetMeshes()) {
-				//m_CB_PerObject->Data->worldMatrix = mesh.GetWorldMatrix();
-				//m_CB_PerObject->Data->prevWvpWorld = m_CB_PerObject->Data->curWvpMatrix;
-				//m_CB_PerObject->Data->curWvpMatrix = mesh.GetWorldMatrix() * m_MainCam->GetViewProjectionMatrix();
-
-				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
-				m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
-				m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
-			}
-		}
-
 		UINT index = 0;
 		for (auto& obj : sceneObjects) {
 			for (auto& mesh : obj->Model->GetMeshes()) {
-				m_CB_PerObject->Data[index].worldMatrix = mesh.GetWorldMatrix() * obj->GetTransform()->GetWorldMatrix();
-				m_CB_PerObject->Data[index].prevWvpWorld = m_CB_PerObject->Data[index].curWvpMatrix;
-				m_CB_PerObject->Data[index].curWvpMatrix = m_CB_PerObject->Data[index].worldMatrix * m_MainCam->GetViewProjectionMatrix();
+
+				auto& gpuObjData = m_CB_PerObject->Data[index];
+
+				gpuObjData.worldMatrix = mesh.GetWorldMatrix() * obj->GetTransform()->GetWorldMatrix();
+				gpuObjData.prevWvpWorld = gpuObjData.curWvpMatrix;
+				gpuObjData.curWvpMatrix = gpuObjData.worldMatrix * m_MainCam->GetViewProjectionMatrix();
 				m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(1 + index));
 				index++;
 
@@ -334,8 +291,6 @@ namespace Ladybug3D {
 				m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
 			}
 		}
-
-		
 	}
 
 	void Renderer::Pass_ImGui()
