@@ -8,6 +8,7 @@
 #include "Transform.hpp"
 #include "ConstantBufferType.hpp"
 #include "Editor.hpp"
+#include "ResourceManager.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -76,6 +77,7 @@ namespace Ladybug3D {
 
 	void Renderer::LoadAssets()
 	{
+		auto& resourceManager = ResourceManager::GetInstance();
 		// Create the pipeline state, which includes compiling and loading shaders.
 		{
 			ComPtr<ID3DBlob> vertexShader;
@@ -151,11 +153,14 @@ namespace Ladybug3D {
 		// Create the vertex buffer.
 		{
 			m_GraphicsCommandList->Begin();
+
+			resourceManager.Initialize();
+
 			for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
 				if (resource.path().extension() == ".obj") {
 					if (resource.path().stem() != L"cone") continue;
 					cout << "Find Obj Model At " << resource.path().string() << endl;
-					m_Models.emplace_back(
+					m_Models.push_back(
 						LoadModel(resource.path().string(), m_Device.Get(), m_GraphicsCommandList->GetCommandList()));
 					continue;
 				}
@@ -170,7 +175,7 @@ namespace Ladybug3D {
 			auto vertexBuffer = make_shared<VertexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), triangleVertices);
 			auto indexBuffer = make_shared<IndexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), indexList);
 			Mesh m = Mesh(vertexBuffer, indexBuffer, DirectX::XMMatrixIdentity());
-			m_Models.emplace_back(m);
+			m_Models.emplace_back(make_shared<Model>(m));
 			m_GraphicsCommandList->Close();
 			ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
 			m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
@@ -297,7 +302,7 @@ namespace Ladybug3D {
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
 		for (auto& model : m_Models) {
-			for (auto& mesh : model.GetMeshes()) {
+			for (auto& mesh : model->GetMeshes()) {
 				m_CB_PerObject->Data->worldMatrix = mesh.GetWorldMatrix();
 				m_CB_PerObject->Data->prevWvpWorld = m_CB_PerObject->Data->curWvpMatrix;
 				m_CB_PerObject->Data->curWvpMatrix = mesh.GetWorldMatrix() * m_MainCam->GetViewProjectionMatrix();

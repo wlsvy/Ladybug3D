@@ -44,8 +44,8 @@ namespace Ladybug3D {
 		uploadBatch.Begin();
 
 		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
-			auto extension = resource.path().extension();
-			if (extension != L".png" &&
+			if (auto extension = resource.path().extension(); 
+				extension != L".png" &&
 				extension != L".jpg") 
 			{
 				continue;
@@ -70,27 +70,26 @@ namespace Ladybug3D {
 
 	void ResourceManager::LoadModels()
 	{
-		/*auto device = Renderer::GetInstance().GetDevice();
-		auto cmdList = Renderer::GetInstance().GetGraphicsCommandList();
+		auto device = Renderer::GetInstance().GetDevice();
+		auto cmdList = Renderer::GetInstance().GetGraphicsCommandList()->GetCommandList();
 
-		cmdList->Begin();
 		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
-			if (resource.path().extension() == ".obj") {
-				if (resource.path().stem() != L"cone") continue;
-				cout << "Find Obj Model At " << resource.path().string() << endl;
-				m_Models.emplace_back(
-					LoadModel(resource.path().string(), m_Device.Get(), m_GraphicsCommandList->GetCommandList()));
+			if (auto extension = resource.path().extension(); 
+				extension != L".obj")
+			{
 				continue;
 			}
+
+			cout << "Find Obj Model At " << resource.path().string() << endl;
+			auto stem = resource.path().stem().string();
+
+			if (m_ModelMap.find(stem) != m_ModelMap.end()) {
+				cout << "Model : " << stem << " or same named Model is already loaded" << endl;
+				continue;
+			}
+
+			m_ModelMap[stem] = LoadModel(resource.path().string(), device, cmdList);
 		}
-		auto vertexBuffer = make_shared<VertexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), triangleVertices);
-		auto indexBuffer = make_shared<IndexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), indexList);
-		Mesh m = Mesh(vertexBuffer, indexBuffer, DirectX::XMMatrixIdentity());
-		m_Models.emplace_back(m);
-		m_GraphicsCommandList->Close();
-		ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
-		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-		WaitForPreviousFrame();*/
 	}
 
 	void ProcessMesh(aiMesh* mesh, vector<Vertex3D>& vertices, vector<UINT>& indices)
@@ -140,7 +139,7 @@ namespace Ladybug3D {
 	class ModelImporter {
 	public:
 		ModelImporter(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList) : m_Device(device), m_CommandList(cmdList) {}
-		Model CreateModel(const std::string& filePath, const aiScene* scene);
+		shared_ptr<Model> CreateModel(const std::string& filePath, const aiScene* scene);
 
 	private:
 		void ProcessNode(aiNode* node, const aiScene* scene, const DirectX::XMMATRIX& parentTransformMatrix);
@@ -151,7 +150,7 @@ namespace Ladybug3D {
 		std::shared_ptr<Mesh> m_Mesh;
 	};
 
-	Model LoadModel(const std::string& filePath, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+	shared_ptr<Model> LoadModel(const std::string& filePath, ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
 	{
 		const auto importer_flags =
 			aiProcess_MakeLeftHanded |              // directx style.
@@ -182,7 +181,7 @@ namespace Ladybug3D {
 		if (pScene == nullptr ||
 			!pScene->HasMeshes())
 		{
-			return Model();
+			return shared_ptr<Model>();
 		}
 
 		auto modelImporter = ModelImporter(device, cmdList);
@@ -211,9 +210,9 @@ namespace Ladybug3D {
 			ProcessNode(node->mChildren[i], scene, nodeTransformMatrix);
 		}
 	}
-	Model ModelImporter::CreateModel(const std::string& filePath, const aiScene* scene)
+	shared_ptr<Model> ModelImporter::CreateModel(const std::string& filePath, const aiScene* scene)
 	{
 		this->ProcessNode(scene->mRootNode, scene, DirectX::XMMatrixIdentity());
-		return Model(move(m_Meshes));
+		return make_shared<Model>(move(m_Meshes));
 	}
 }
