@@ -1,9 +1,16 @@
 #include "ResourceManager.hpp"
 #include "Model.hpp"
+#include "Renderer.hpp"
+
+#include <filesystem>
+
 #include <D3D12/D3D12_DescriptorHeapAllocator.hpp>
+#include <D3D12/D3D12_CommandList.hpp>
 #include <D3D12/D3D12_Util.hpp>
 #include <D3D12/D3D12_Texture.hpp>
 #include <D3D12/D3D12_VertexType.hpp>
+
+#include <Direct12XTK/Include/ResourceUploadBatch.h>
 
 #include <Assimp/Importer.hpp>
 #include <Assimp/postprocess.h>
@@ -19,6 +26,71 @@ namespace Ladybug3D {
 	}
 	ResourceManager::~ResourceManager()
 	{
+	}
+
+	bool ResourceManager::Initialize()
+	{
+		LoadModels();
+		LoadTextures();
+		return true;
+	}
+
+	void ResourceManager::LoadTextures()
+	{
+		auto device = Renderer::GetInstance().GetDevice();
+		auto commandQueue = Renderer::GetInstance().GetCommandQueue();
+
+		DirectX::ResourceUploadBatch uploadBatch(device);
+		uploadBatch.Begin();
+
+		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
+			auto extension = resource.path().extension();
+			if (extension != L".png" &&
+				extension != L".jpg") 
+			{
+				continue;
+			}
+
+			cout << "Find Texture At " << resource << endl;
+			auto stem = resource.path().stem().string();
+				
+			if (m_TextureMap.find(stem) != m_TextureMap.end()) {
+				cout << "Texture : " << stem << " or same named Texture is already loaded" << endl;
+				continue;
+			}
+
+			auto texture = make_shared<Texture>();
+			texture->InitializeWICTexture(resource.path().c_str(), uploadBatch, device);
+			m_TextureMap[stem] = texture;
+		}
+
+		auto finish = uploadBatch.End(commandQueue);
+		finish.wait();
+	}
+
+	void ResourceManager::LoadModels()
+	{
+		/*auto device = Renderer::GetInstance().GetDevice();
+		auto cmdList = Renderer::GetInstance().GetGraphicsCommandList();
+
+		cmdList->Begin();
+		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
+			if (resource.path().extension() == ".obj") {
+				if (resource.path().stem() != L"cone") continue;
+				cout << "Find Obj Model At " << resource.path().string() << endl;
+				m_Models.emplace_back(
+					LoadModel(resource.path().string(), m_Device.Get(), m_GraphicsCommandList->GetCommandList()));
+				continue;
+			}
+		}
+		auto vertexBuffer = make_shared<VertexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), triangleVertices);
+		auto indexBuffer = make_shared<IndexBuffer>(m_Device.Get(), m_GraphicsCommandList->GetCommandList(), indexList);
+		Mesh m = Mesh(vertexBuffer, indexBuffer, DirectX::XMMatrixIdentity());
+		m_Models.emplace_back(m);
+		m_GraphicsCommandList->Close();
+		ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
+		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		WaitForPreviousFrame();*/
 	}
 
 	void ProcessMesh(aiMesh* mesh, vector<Vertex3D>& vertices, vector<UINT>& indices)

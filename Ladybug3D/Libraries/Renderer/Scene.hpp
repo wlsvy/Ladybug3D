@@ -1,11 +1,13 @@
 #pragma once
 #include "Object.hpp"
+#include <vector>
 
 namespace Ladybug3D {
 
 	class Transform;
 	class Camera;
 	class Renderer;
+	class SceneObject;
 
 	class Scene : public Object {
 		friend class Renderer;
@@ -29,6 +31,7 @@ namespace Ladybug3D {
 
 		std::shared_ptr<Transform> m_WorldTransform;
 		std::shared_ptr<Camera> m_MainCam;
+		std::vector<std::shared_ptr<SceneObject>> m_SceneObjects;
 
 		mutable std::weak_ptr<Transform> m_GuiSelectedObj;
 	};

@@ -66,8 +66,6 @@ namespace Ladybug3D {
 			m_Test = make_shared<SceneObject>();
 			m_MainCam = make_shared<Camera>();
 			m_MainCam->SetProjectionValues(90.0f, m_aspectRatio, 0.1f, 1000.0f);
-
-			cout << "Initialize Renderer Successed\n";
 		}
 		catch (exception& e) {
 			cout << e.what() << endl;
@@ -96,8 +94,10 @@ namespace Ladybug3D {
 						//continue;
 					}
 					cout << "Find Shader At " << resource << endl;
-					ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-					ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
+					ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr),
+						"Failed To Compile Vertex Shader");
+					ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr),
+						"Failed To Compile Pixel Shader");
 				}
 			}
 

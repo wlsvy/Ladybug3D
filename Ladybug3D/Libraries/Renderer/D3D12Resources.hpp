@@ -16,6 +16,8 @@ namespace Ladybug3D {
 
         UINT GetWidth() const { return m_width; }
         UINT GetHeight() const { return m_height; }
+        auto GetDevice() { return m_Device.Get(); }
+        auto GetCommandQueue() {return m_CommandQueue.Get(); }
 
     protected:
         bool Initialize(HWND hwnd, UINT width, UINT height);

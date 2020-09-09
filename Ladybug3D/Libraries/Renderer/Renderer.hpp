@@ -28,6 +28,7 @@ namespace Ladybug3D {
         void OnDestroy();
 
         auto GetCurrentScene() const { return m_CurrentScene; }
+        auto GetGraphicsCommandList() { return m_GraphicsCommandList.get(); }
 
     private:
         void CreateRootSignature();

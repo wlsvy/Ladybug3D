@@ -1,5 +1,6 @@
 #pragma once
 #include "Scene.hpp"
+#include "SceneObject.hpp"
 #include "Transform.hpp"
 #include "Camera.hpp"
 #include <ImGui/imgui.h>
@@ -12,7 +13,6 @@ namespace Ladybug3D {
 	Scene::Scene()
 		: m_WorldTransform(make_shared<Transform>())
 	{
-		//m_MainCam = make_shared<Camera>();
 	}
 	Scene::~Scene()
 	{
@@ -60,7 +60,9 @@ namespace Ladybug3D {
 
 	void Scene::Initialize()
 	{
-
+		m_SceneObjects.emplace_back(make_shared<SceneObject>("Sample Object 0"));
+		m_SceneObjects.back()->GetTransform()->SetPosition(3.0f, .0f, 3.0f);
+		//m_SceneObjects.back()->Model = 
 	}
 
 	void Scene::OnUpdate()
