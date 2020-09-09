@@ -67,7 +67,6 @@ namespace Ladybug3D {
 
 			m_CurrentScene = make_shared<Scene>();
 			m_CurrentScene->Initialize();
-			m_Test = make_shared<SceneObject>();
 			m_MainCam = make_shared<Camera>();
 			m_MainCam->SetProjectionValues(90.0f, m_aspectRatio, 0.1f, 1000.0f);
 		}
@@ -210,6 +209,8 @@ namespace Ladybug3D {
 	{
 		cout << "Shut Down Renderer ..." << endl;
 		WaitForPreviousFrame();
+		m_CurrentScene->OnDestroy();
+
 		Editor::ShutDownImGui();
 	}
 

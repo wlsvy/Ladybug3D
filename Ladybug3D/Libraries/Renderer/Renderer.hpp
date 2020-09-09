@@ -48,7 +48,6 @@ namespace Ladybug3D {
 
         std::vector<std::shared_ptr<Model>> m_Models;
         std::shared_ptr<Scene> m_CurrentScene;
-        std::shared_ptr<SceneObject> m_Test;
         std::shared_ptr<Camera> m_MainCam;
 
         std::unique_ptr<Ladybug3D::D3D12::Texture> m_SampleTexture;

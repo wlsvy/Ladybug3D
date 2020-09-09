@@ -50,6 +50,11 @@ namespace Ladybug3D {
 		}
 	}
 
+	void Scene::OnDestroy()
+	{
+		m_SceneObjects.clear();
+	}
+
 	void Scene::OnImGui()
 	{
 		for (auto child : m_WorldTransform->m_Children)

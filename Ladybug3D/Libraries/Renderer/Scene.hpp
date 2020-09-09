@@ -21,6 +21,8 @@ namespace Ladybug3D {
 		std::shared_ptr<Transform> GetWorldTransform() const { return m_WorldTransform; }
 		std::shared_ptr<Camera> GetMainCam() const { return m_MainCam; }
 	
+		void OnDestroy() override;
+
 		void OnImGui() override;
 		auto GetGuiSelected() const { return m_GuiSelectedObj; }
 
