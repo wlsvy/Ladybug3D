@@ -19,7 +19,40 @@ namespace Ladybug3D {
 	{
 	}
 
-	void Scene::ProcessGuiHirarchy(std::shared_ptr<Transform> transform) const
+	void Scene::Initialize()
+	{
+		auto& modelMap = ResourceManager::GetInstance().GetModelMap();
+		auto& resourceManager = ResourceManager::GetInstance();
+
+		m_SceneObjects.emplace_back(make_shared<SceneObject>("Sample Cone"));
+		m_SceneObjects.back()->GetTransform()->SetPosition(3.0f, .0f, 3.0f);
+		m_SceneObjects.back()->Model = resourceManager.GetModel("cone");
+
+		m_SceneObjects.emplace_back(make_shared<SceneObject>("Sample Cube"));
+		m_SceneObjects.back()->GetTransform()->SetPosition(-3.0f, .0f, 3.0f);
+		m_SceneObjects.back()->Model = resourceManager.GetModel("cube");
+	}
+
+	void Scene::OnUpdate()
+	{
+		m_WorldTransform->UpdateMatrix(XMMatrixIdentity(), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
+	}
+
+	void Scene::OnDestroy()
+	{
+		m_SceneObjects.clear();
+	}
+
+	void Scene::OnImGui()
+	{
+		for (auto child : m_WorldTransform->m_Children)
+		{
+			ProcessSceneGraphGui(child);
+		}
+		ImGui::Spacing();
+	}
+
+	void Scene::ProcessSceneGraphGui(std::shared_ptr<Transform> transform) const
 	{
 		bool check = false;
 		if (auto selected = m_GuiSelectedObj.lock())
@@ -44,42 +77,9 @@ namespace Ladybug3D {
 		{
 			for (auto child : transform->m_Children)
 			{
-				ProcessGuiHirarchy(child);
+				ProcessSceneGraphGui(child);
 			}
 			ImGui::TreePop();
 		}
-	}
-
-	void Scene::OnDestroy()
-	{
-		m_SceneObjects.clear();
-	}
-
-	void Scene::OnImGui()
-	{
-		for (auto child : m_WorldTransform->m_Children)
-		{
-			ProcessGuiHirarchy(child);
-		}
-		ImGui::Spacing();
-	}
-
-	void Scene::Initialize()
-	{
-		auto& modelMap = ResourceManager::GetInstance().GetModelMap();
-		auto& resourceManager = ResourceManager::GetInstance();
-
-		m_SceneObjects.emplace_back(make_shared<SceneObject>("Sample Cone"));
-		m_SceneObjects.back()->GetTransform()->SetPosition(3.0f, .0f, 3.0f);
-		m_SceneObjects.back()->Model = resourceManager.GetModel("cone");
-
-		m_SceneObjects.emplace_back(make_shared<SceneObject>("Sample Cube"));
-		m_SceneObjects.back()->GetTransform()->SetPosition(-3.0f, .0f, 3.0f);
-		m_SceneObjects.back()->Model = resourceManager.GetModel("cube");
-	}
-
-	void Scene::OnUpdate()
-	{
-		m_WorldTransform->UpdateMatrix(XMMatrixIdentity(), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 }

@@ -63,8 +63,6 @@ namespace Ladybug3D {
 			CreateResourceView();
 			Editor::InitImGui(hwnd, m_Device.Get(), SWAPCHAIN_BUFFER_COUNT, m_ImGuiDescriptorHeap.get());
 
-			auto& r = ResourceManager::GetInstance();
-
 			m_CurrentScene = make_shared<Scene>();
 			m_CurrentScene->Initialize();
 			m_MainCam = make_shared<Camera>();

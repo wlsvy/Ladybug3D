@@ -30,7 +30,7 @@ namespace Ladybug3D {
 	private:
 		void Initialize();
 		void OnUpdate() override;
-		void ProcessGuiHirarchy(std::shared_ptr<Transform>) const;
+		void ProcessSceneGraphGui(std::shared_ptr<Transform>) const;
 
 		std::shared_ptr<Transform> m_WorldTransform;
 		std::shared_ptr<Camera> m_MainCam;
