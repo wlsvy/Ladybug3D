@@ -10,8 +10,6 @@ namespace Ladybug3D {
     class Camera;
     class Editor;
 
-    struct CB_Matrix;
-    struct CB_Test;
     struct CB_PerObject;
     struct CB_PerScene;
 

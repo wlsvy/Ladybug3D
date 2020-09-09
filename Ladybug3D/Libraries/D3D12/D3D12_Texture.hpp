@@ -4,10 +4,6 @@
 #include <d3d12.h>
 #include <vector>
 
-namespace DirectX {
-	class ResourceUploadBatch;
-}
-
 namespace Ladybug3D::D3D12 {
 	class Texture : public Resource {
 	public:

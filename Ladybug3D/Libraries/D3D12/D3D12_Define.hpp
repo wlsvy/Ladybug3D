@@ -42,3 +42,7 @@ namespace Ladybug3D::D3D12 {
 	template<typename T>
 	class ConstantBuffer;
 }
+
+namespace DirectX {
+	class ResourceUploadBatch;
+}
