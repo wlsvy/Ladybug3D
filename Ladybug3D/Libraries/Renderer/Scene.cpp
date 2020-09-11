@@ -21,7 +21,6 @@ namespace Ladybug3D {
 
 	void Scene::Initialize()
 	{
-		auto& modelMap = ResourceManager::GetInstance().GetModelMap();
 		auto& resourceManager = ResourceManager::GetInstance();
 
 		m_SceneObjects.emplace_back(make_shared<SceneObject>("Sample Cone"));

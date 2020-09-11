@@ -35,7 +35,4 @@ namespace Ladybug3D {
 		std::unordered_map<std::string, std::shared_ptr<Model>> m_ModelMap;
 		std::unordered_map<std::string, std::shared_ptr<D3D12::Texture>> m_TextureMap;
 	};
-
-	std::shared_ptr<Model> LoadModel(const std::string& filePath, ID3D12Device* device, D3D12::GraphicsCommandList* cmdList);
-
 }

@@ -19,6 +19,10 @@ using namespace Ladybug3D::D3D12;
 using namespace std;
 
 namespace Ladybug3D {
+
+	shared_ptr<Model> LoadModel(const std::string& filePath, ID3D12Device* device, GraphicsCommandList* cmdList);
+
+
 	ResourceManager::ResourceManager()
 	{
 	}
