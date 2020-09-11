@@ -54,8 +54,8 @@ namespace Ladybug3D {
 			m_CB_PerObject = make_unique<ConstantBuffer<CB_PerObject>>(m_Device.Get(), MAX_OBJECT_COUNT);
 			m_CB_PerScene = make_unique<ConstantBuffer<CB_PerScene>>(m_Device.Get());
 
-			CreateRootSignature();
 			LoadAssets();
+			CreatePipelineState();
 			CreateResourceView();
 
 			m_CurrentScene = make_shared<Scene>();
@@ -75,75 +75,15 @@ namespace Ladybug3D {
 	void Renderer::LoadAssets()
 	{
 		auto& resourceManager = ResourceManager::GetInstance();
-		// Create the pipeline state, which includes compiling and loading shaders.
-		{
-			ComPtr<ID3DBlob> vertexShader;
-			ComPtr<ID3DBlob> pixelShader;
-			ComPtr<ID3DBlob> errorMsg;
+		m_GraphicsCommandList->Begin();
 
-#if defined(_DEBUG)
-			// Enable better shader debugging with the graphics debugging tools.
-			UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-			UINT compileFlags = 0;
-#endif
+		resourceManager.Initialize();
 
-			for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
-				if (resource.path().extension() == L".hlsl"){
-					cout << "Find Shader At " << resource << endl;
-					/*HRESULT hr = D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg);
-					if (FAILED(hr)) {
-						OutputDebugStringA(reinterpret_cast<const char*>(errorMsg->GetBufferPointer()));
-						return;
-					}*/
-					ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg),
-						"Failed To Compile Vertex Shader");
-					ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, &errorMsg),
-						"Failed To Compile Pixel Shader");
-				}
-			}
+		m_GraphicsCommandList->Close();
 
-			D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-			{
-				{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "NORMAL",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,		0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-				{ "TANGENT",	0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			};
-
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-			psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-			psoDesc.pRootSignature = m_rootSignature.Get();
-			psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
-			psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
-			psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-			psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-			psoDesc.DepthStencilState.DepthEnable = FALSE;
-			psoDesc.DepthStencilState.StencilEnable = FALSE;
-			psoDesc.SampleMask = UINT_MAX;
-			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-			psoDesc.NumRenderTargets = 1;
-			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-			psoDesc.SampleDesc.Count = 1;
-			ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)),
-				"Failed To Create Pipeline State Object");
-		}
-
-		
-
-
-		// Load Model
-		{
-			m_GraphicsCommandList->Begin();
-
-			resourceManager.Initialize();
-
-			m_GraphicsCommandList->Close();
-
-			ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
-			m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-			WaitForPreviousFrame();
-		}
+		ID3D12CommandList* ppCommandLists[] = { m_GraphicsCommandList->GetCommandList() };
+		m_CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		WaitForPreviousFrame();
 	}
 
 	void Renderer::CreatePipelineState()
@@ -207,20 +147,20 @@ namespace Ladybug3D {
 		ComPtr<ID3DBlob> pixelShader;
 		ComPtr<ID3DBlob> errorMsg;
 
-		HRESULT hr = D3DCompileFromFile(resourceManager.GetShaderPath("shader"), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg);
+		HRESULT hr = D3DCompileFromFile(resourceManager.GetShaderPath("shaders"), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg);
 		if (FAILED(hr)) {
-			cout << "Failed To Compile Shader - " << resourceManager.GetShaderPath("shader") << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
+			cout << "Failed To Compile Shader - " << resourceManager.GetShaderPath("shaders") << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
 			ThrowIfFailed(hr);
 		}
-		hr = D3DCompileFromFile(resourceManager.GetShaderPath("shader"), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, &errorMsg);
+		hr = D3DCompileFromFile(resourceManager.GetShaderPath("shaders"), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, &errorMsg);
 		if (FAILED(hr)) {
-			cout << "Failed To Compile Shader - " << resourceManager.GetShaderPath("shader") << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
+			cout << "Failed To Compile Shader - " << resourceManager.GetShaderPath("shaders") << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
 			ThrowIfFailed(hr);
 		}
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.InputLayout = { inputElement_Vertex3D, _countof(inputElement_Vertex3D) };
-		psoDesc.pRootSignature = m_rootSignature.Get();
+		psoDesc.pRootSignature = rootSignature.Get();
 		psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
 		psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -234,8 +174,6 @@ namespace Ladybug3D {
 		psoDesc.SampleDesc.Count = 1;
 
 		m_D3D12PipelineState = make_unique<PipelineState>(m_Device.Get(), &psoDesc);
-		ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)),
-			"Failed To Create Pipeline State Object");
 
 	}
 
@@ -290,42 +228,6 @@ namespace Ladybug3D {
 		}
 	}
 
-	void Renderer::CreateRootSignature()
-	{
-		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = { D3D_ROOT_SIGNATURE_VERSION_1_1 };
-		if (FAILED(m_Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
-		{
-			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
-		}
-
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);	//b0
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);	//b1
-
-		CD3DX12_ROOT_PARAMETER1 rootParameters[2];
-		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
-		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
-
-		CD3DX12_STATIC_SAMPLER_DESC samplerDesc[2];
-		samplerDesc[0].Init(0, D3D12_FILTER_ANISOTROPIC);
-		samplerDesc[1].Init(1, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR,
-			D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
-			D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
-			D3D12_TEXTURE_ADDRESS_MODE_MIRROR);
-
-		auto rootSignatureFlag = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, _countof(samplerDesc), samplerDesc, rootSignatureFlag);
-
-		ComPtr<ID3DBlob> signature;
-		ComPtr<ID3DBlob> error;
-		ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error),
-			"Failed To Serialize RootSignature");
-		ThrowIfFailed(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_rootSignature.GetAddressOf())),
-			"Failed To Create RootSignature");
-	}
-
 	void Renderer::RenderBegin()
 	{
 		m_FrameIndex = m_swapChain->GetCurrentBackBufferIndex();
@@ -356,9 +258,7 @@ namespace Ladybug3D {
 
 		ID3D12DescriptorHeap* ppHeaps[] = { m_ResourceDescriptorHeap->GetDescriptorHeap() };
 		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		m_GraphicsCommandList->GetCommandList()->SetPipelineState(m_pipelineState.Get());
-		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
-		m_GraphicsCommandList->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_GraphicsCommandList->SetPipelineState(m_D3D12PipelineState.get());
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::CB_PerScene, m_ResourceDescriptorHeap->GetGpuHandle(DescriptorHeapIndex::CB_PerScene));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 

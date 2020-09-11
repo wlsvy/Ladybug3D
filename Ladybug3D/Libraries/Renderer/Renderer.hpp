@@ -28,7 +28,6 @@ namespace Ladybug3D {
         auto GetGraphicsCommandList() { return m_GraphicsCommandList.get(); }
 
     private:
-        void CreateRootSignature();
         void LoadAssets();
         void CreatePipelineState();
         void CreateResourceView();
