@@ -2,8 +2,6 @@
 #include "Model.hpp"
 #include "Renderer.hpp"
 
-#include <filesystem>
-
 #include <D3D12/D3D12_DescriptorHeapAllocator.hpp>
 #include <D3D12/D3D12_CommandList.hpp>
 #include <D3D12/D3D12_Util.hpp>
@@ -30,6 +28,7 @@ namespace Ladybug3D {
 
 	bool ResourceManager::Initialize()
 	{
+		TrackAssetsPath();
 		LoadModels();
 		LoadTextures();
 		return true;
@@ -61,6 +60,15 @@ namespace Ladybug3D {
 				}
 				m_ModelPathMap[stem] = resource.path();
 			}
+			else if (extension == L".hlsl")
+			{
+				cout << "Find Shader At " << resource << endl;
+				if (m_ShaderPathMap.find(stem) != m_ShaderPathMap.end()) {
+					cout << "Shader : " << stem << " or same named Shader is already found" << endl;
+					continue;
+				}
+				m_ShaderPathMap[stem] = resource.path();
+			}
 		}
 	}
 
@@ -72,25 +80,11 @@ namespace Ladybug3D {
 		DirectX::ResourceUploadBatch uploadBatch(device);
 		uploadBatch.Begin();
 
-		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
-			if (auto extension = resource.path().extension(); 
-				extension != L".png" &&
-				extension != L".jpg") 
-			{
-				continue;
-			}
-
-			cout << "Find Texture At " << resource << endl;
-			auto stem = resource.path().stem().string();
-				
-			if (m_TextureMap.find(stem) != m_TextureMap.end()) {
-				cout << "Texture : " << stem << " or same named Texture is already loaded" << endl;
-				continue;
-			}
-
+		for (auto& pair : m_TexturePathMap) {
+			cout << "Load Texture : " << pair.second << endl;
 			auto texture = make_shared<Texture>();
-			texture->InitializeWICTexture(resource.path().c_str(), uploadBatch, device);
-			m_TextureMap[stem] = texture;
+			texture->InitializeWICTexture(pair.second.c_str(), uploadBatch, device);
+			m_TextureMap[pair.first] = texture;
 		}
 
 		auto finish = uploadBatch.End(commandQueue);
@@ -102,22 +96,9 @@ namespace Ladybug3D {
 		auto device = Renderer::GetInstance().GetDevice();
 		auto cmdList = Renderer::GetInstance().GetGraphicsCommandList();
 
-		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
-			if (auto extension = resource.path().extension(); 
-				extension != L".obj")
-			{
-				continue;
-			}
-
-			cout << "Find Obj Model At " << resource.path().string() << endl;
-			auto stem = resource.path().stem().string();
-
-			if (m_ModelMap.find(stem) != m_ModelMap.end()) {
-				cout << "Model : " << stem << " or same named Model is already loaded" << endl;
-				continue;
-			}
-
-			m_ModelMap[stem] = LoadModel(resource.path().string(), device, cmdList);
+		for (auto& pair : m_ModelPathMap) {
+			cout << "Load Model : " << pair.second << endl;
+			m_ModelMap[pair.first] = LoadModel(pair.second.string(), device, cmdList);
 		}
 	}
 
