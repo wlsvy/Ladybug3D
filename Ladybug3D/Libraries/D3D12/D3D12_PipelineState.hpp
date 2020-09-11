@@ -11,6 +11,7 @@ namespace Ladybug3D::D3D12 {
 		void InitializeRootSignature();
 
 		auto GetPipelinsState() { return m_pipelineState.Get(); }
+		auto GetRootSignature() { return m_rootSignature.Get(); }
 
 	private:
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;

@@ -41,6 +41,7 @@ namespace Ladybug3D::D3D12 {
 	class Texture;
 	class VertexBuffer;
 	class IndexBuffer;
+	class PipelineState;
 
 	template<typename T>
 	class ConstantBuffer;
