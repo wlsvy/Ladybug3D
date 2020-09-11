@@ -35,6 +35,35 @@ namespace Ladybug3D {
 		return true;
 	}
 
+	void ResourceManager::TrackAssetsPath()
+	{
+		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
+			auto extension = resource.path().extension();
+			auto stem = resource.path().stem().string();
+
+			if (extension == L".png" ||
+				extension == L".jpg")
+			{
+				cout << "Find Texture At " << resource << endl;
+				if (m_TexturePathMap.find(stem) != m_TexturePathMap.end()) {
+					cout << "Texture : " << stem << " or same named Texture is already found" << endl;
+					continue;
+				}
+				m_TexturePathMap[stem] = resource.path();
+			}
+			else if (extension == L".obj" ||
+				extension == L".fbx")
+			{
+				cout << "Find Model At " << resource << endl;
+				if (m_ModelPathMap.find(stem) != m_ModelPathMap.end()) {
+					cout << "Model : " << stem << " or same named Model is already found" << endl;
+					continue;
+				}
+				m_ModelPathMap[stem] = resource.path();
+			}
+		}
+	}
+
 	void ResourceManager::LoadTextures()
 	{
 		auto device = Renderer::GetInstance().GetDevice();

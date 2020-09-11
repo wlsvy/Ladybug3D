@@ -1,26 +1,20 @@
 #pragma once
-#include <wrl/client.h>
-
-struct ID3D12Device;
-struct ID3D12GraphicsCommandList;
-struct ID3D12CommandAllocator;
-struct ID3D12Fence;
-struct ID3D12PipelineState;
-struct ID3D12DescriptorHeap;
-struct D3D12_CPU_DESCRIPTOR_HANDLE;
-struct D3D12_RESOURCE_BARRIER;
+#include "D3D12_Define.hpp"
 
 namespace Ladybug3D::D3D12 {
 
 	class PipelineState {
 	public:
-		PipelineState();
+		PipelineState(ID3D12Device* device, D3D12_GRAPHICS_PIPELINE_STATE_DESC* desc);
 		~PipelineState();
 
+		void InitializeRootSignature();
 
+		auto GetPipelinsState() { return m_pipelineState.Get(); }
 
 	private:
-
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
 
 	};
 }

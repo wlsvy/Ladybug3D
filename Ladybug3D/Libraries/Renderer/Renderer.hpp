@@ -30,6 +30,7 @@ namespace Ladybug3D {
     private:
         void CreateRootSignature();
         void LoadAssets();
+        void CreatePipelineState();
         void CreateResourceView();
 
         void RenderBegin();

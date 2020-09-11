@@ -23,8 +23,12 @@ namespace Ladybug3D {
 		auto GetTexture(const std::string& name) { return m_TextureMap[name]; }
 
 	private:
+		void TrackAssetsPath();
 		void LoadTextures();
 		void LoadModels();
+
+		std::unordered_map<std::string, std::wstring> m_ModelPathMap;
+		std::unordered_map<std::string, std::wstring> m_TexturePathMap;
 
 		std::unordered_map<std::string, std::shared_ptr<Model>> m_ModelMap;
 		std::unordered_map<std::string, std::shared_ptr<D3D12::Texture>> m_TextureMap;
