@@ -173,7 +173,7 @@ namespace Ladybug3D {
 		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		psoDesc.SampleDesc.Count = 1;
 
-		m_D3D12PipelineState = make_unique<PipelineState>(m_Device.Get(), &psoDesc);
+		m_PSO_Default = make_unique<PipelineState>(m_Device.Get(), &psoDesc);
 
 	}
 
@@ -258,7 +258,7 @@ namespace Ladybug3D {
 
 		ID3D12DescriptorHeap* ppHeaps[] = { m_ResourceDescriptorHeap->GetDescriptorHeap() };
 		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-		m_GraphicsCommandList->SetPipelineState(m_D3D12PipelineState.get());
+		m_GraphicsCommandList->SetPipelineState(m_PSO_Default.get());
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::CB_PerScene, m_ResourceDescriptorHeap->GetGpuHandle(DescriptorHeapIndex::CB_PerScene));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
