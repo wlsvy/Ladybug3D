@@ -13,6 +13,7 @@ namespace Ladybug3D::D3D12 {
 		void Close();
 		void ClearRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE rtv, const float* clearColor);
 		void ResourceBarrier(UINT numBarrier, const D3D12_RESOURCE_BARRIER* barrier);
+		void SetPipelineState(PipelineState* pso);
 		void SetRenderTarget(UINT numDesriptors, const D3D12_CPU_DESCRIPTOR_HANDLE* rtv, const D3D12_CPU_DESCRIPTOR_HANDLE* dsv = nullptr, bool isSingleToRange = false);
 		void TrackObject(const Microsoft::WRL::ComPtr<ID3D12Object>& obj);
 

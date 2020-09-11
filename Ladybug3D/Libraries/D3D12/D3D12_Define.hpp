@@ -29,6 +29,8 @@ struct D3D12_RESOURCE_BARRIER;
 struct D3D12_GRAPHICS_PIPELINE_STATE_DESC;
 struct D3D12_VERSIONED_ROOT_SIGNATURE_DESC;
 
+enum D3D_PRIMITIVE_TOPOLOGY;
+
 using SIZE_T = unsigned __int64;
 using UCHAR = unsigned char;
 using UINT = unsigned int;

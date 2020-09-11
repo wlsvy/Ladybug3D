@@ -2,6 +2,7 @@
 #include <d3d12.h>
 #include "d3dx12.h"
 #include "D3D12_Util.hpp"
+#include "D3D12_PipelineState.hpp"
 
 namespace Ladybug3D::D3D12 {
 
@@ -45,6 +46,12 @@ namespace Ladybug3D::D3D12 {
 	void GraphicsCommandList::ClearRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE rtv, const float* clearColor)
 	{
 		m_CommandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+	}
+
+	void GraphicsCommandList::SetPipelineState(PipelineState* pso) {
+		m_CommandList->SetPipelineState(pso->GetPipelinsState());
+		m_CommandList->SetGraphicsRootSignature(pso->GetRootSignature());
+		m_CommandList->IASetPrimitiveTopology(pso->GetPrimitiveTopology());
 	}
 
 	void GraphicsCommandList::SetRenderTarget(

@@ -13,11 +13,11 @@ namespace Ladybug3D::D3D12 {
 
 	PipelineState::PipelineState(
 		ID3D12Device* device, 
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC* pipelinestateDesc, 
-		D3D12_VERSIONED_ROOT_SIGNATURE_DESC* rootSignatureDesc)
-		: rs(pipelinestateDesc->pRootSignature)
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC* psoDesc)
+		: rs(psoDesc->pRootSignature)
+		, m_PrimitiveTopologyType(psoDesc->PrimitiveTopologyType)
 	{
-		ThrowIfFailed(device->CreateGraphicsPipelineState(pipelinestateDesc, IID_PPV_ARGS(&m_pipelineState)),
+		ThrowIfFailed(device->CreateGraphicsPipelineState(psoDesc, IID_PPV_ARGS(&m_pipelineState)),
 			"Failed To Create Pipeline State Object");
 	}
 
@@ -27,5 +27,17 @@ namespace Ladybug3D::D3D12 {
 
 	void PipelineState::InitializeRootSignature()
 	{
+	}
+	D3D_PRIMITIVE_TOPOLOGY PipelineState::GetPrimitiveTopology()
+	{
+		switch (m_PrimitiveTopologyType) {
+		case D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT: return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+		case D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+		case D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+		case D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH:
+		case D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED: return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+		}
 	}
 }
