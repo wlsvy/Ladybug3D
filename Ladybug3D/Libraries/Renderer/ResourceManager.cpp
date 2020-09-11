@@ -38,6 +38,30 @@ namespace Ladybug3D {
 		return true;
 	}
 
+	shared_ptr<Model> ResourceManager::GetModel(const string& name)
+	{
+		if (auto iter = m_ModelMap.find(name); iter != m_ModelMap.end()) {
+			return iter->second;
+		}
+		return shared_ptr<Model>();
+	}
+
+	shared_ptr<Texture> ResourceManager::GetTexture(const string& name)
+	{
+		if (auto iter = m_TextureMap.find(name); iter != m_TextureMap.end()) {
+			return iter->second;
+		}
+		return shared_ptr<Texture>();
+	}
+
+	const wchar_t* ResourceManager::GetShaderPath(const string& name)
+	{
+		if (auto iter = m_ShaderPathMap.find(name); iter != m_ShaderPathMap.end()) {
+			return iter->second.c_str();
+		}
+		return nullptr;
+	}
+
 	void ResourceManager::TrackAssetsPath()
 	{
 		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {

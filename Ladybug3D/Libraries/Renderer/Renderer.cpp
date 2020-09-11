@@ -182,9 +182,7 @@ namespace Ladybug3D {
 		ThrowIfFailed(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&rootSignature)),
 			"Failed To Create RootSignature");
 
-		ComPtr<ID3DBlob> vertexShader;
-		ComPtr<ID3DBlob> pixelShader;
-		ComPtr<ID3DBlob> errorMsg;
+		
 
 #if defined(_DEBUG)
 		// Enable better shader debugging with the graphics debugging tools.
@@ -193,14 +191,21 @@ namespace Ladybug3D {
 		UINT compileFlags = 0;
 #endif
 
-		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {
-			if (resource.path().extension() == L".hlsl") {
-				cout << "Find Shader At " << resource << endl;
-				ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg),
-					"Failed To Compile Vertex Shader");
-				ThrowIfFailed(D3DCompileFromFile(resource.path().c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, &errorMsg),
-					"Failed To Compile Pixel Shader");
-			}
+		auto& resourceManager = ResourceManager::GetInstance();
+
+		ComPtr<ID3DBlob> vertexShader;
+		ComPtr<ID3DBlob> pixelShader;
+		ComPtr<ID3DBlob> errorMsg;
+
+		HRESULT hr = D3DCompileFromFile(resourceManager.GetShaderPath("shader"), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg);
+		if (FAILED(hr)) {
+			cout << "Failed To Compile Shader - " << resourceManager.GetShaderPath("shader") << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
+			ThrowIfFailed(hr);
+		}
+		hr = D3DCompileFromFile(resourceManager.GetShaderPath("shader"), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, &errorMsg);
+		if (FAILED(hr)) {
+			cout << "Failed To Compile Shader - " << resourceManager.GetShaderPath("shader") << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
+			ThrowIfFailed(hr);
 		}
 
 		D3D12_INPUT_ELEMENT_DESC inputElement_Vertex3D[] =
