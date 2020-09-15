@@ -29,6 +29,11 @@ namespace Ladybug3D::D3D12 {
 	{
 		DirectX::CreateShaderResourceView(device, m_Resource.Get(), descriptor);
 	}
+
+	void Texture::CreateCubeMapShaderResourceView(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+	{
+		DirectX::CreateShaderResourceView(device, m_Resource.Get(), descriptor, true);
+	}
 	
     
 }

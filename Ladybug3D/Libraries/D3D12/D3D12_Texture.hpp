@@ -15,6 +15,7 @@ namespace Ladybug3D::D3D12 {
 			DirectX::ResourceUploadBatch& uploadBatch, 
 			ID3D12Device* device);
 		void CreateShaderResourceView(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
+		void CreateCubeMapShaderResourceView(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
 
 	private:
 	};

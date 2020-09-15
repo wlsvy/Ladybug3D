@@ -38,6 +38,12 @@ namespace Ladybug3D {
 		return true;
 	}
 
+	void ResourceManager::Destroy()
+	{
+		m_ModelMap.clear();
+		m_TextureMap.clear();
+	}
+
 	shared_ptr<Model> ResourceManager::GetModel(const string& name)
 	{
 		if (auto iter = m_ModelMap.find(name); iter != m_ModelMap.end()) {

@@ -32,6 +32,8 @@ namespace Ladybug3D {
         void CreatePipelineState();
         void CreateResourceView();
 
+        void UpdateConstantBuffer();
+
         void RenderBegin();
         void RenderEnd();
         void Pass_Main();
@@ -39,18 +41,18 @@ namespace Ladybug3D {
         void WaitForPreviousFrame();
 
 
-        std::unique_ptr<Ladybug3D::D3D12::GraphicsCommandList> m_GraphicsCommandList;
-        std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_ResourceDescriptorHeap;
+        std::unique_ptr<D3D12::GraphicsCommandList> m_GraphicsCommandList;
+        std::unique_ptr<D3D12::DescriptorHeapAllocator> m_ResourceDescriptorHeap;
 
-        std::unique_ptr<Ladybug3D::D3D12::PipelineState> m_PSO_Default;
+        std::unique_ptr<D3D12::PipelineState> m_PSO_Default;
 
-        std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_PerScene>> m_CB_PerScene;
-        std::unique_ptr<Ladybug3D::D3D12::ConstantBuffer<CB_PerObject>> m_CB_PerObject;
+        std::unique_ptr<D3D12::ConstantBuffer<CB_PerScene>> m_CB_PerScene;
+        std::unique_ptr<D3D12::ConstantBuffer<CB_PerObject>> m_CB_PerObject;
 
         std::shared_ptr<Scene> m_CurrentScene;
         std::shared_ptr<Camera> m_MainCam;
 
-        std::unique_ptr<Ladybug3D::Editor> m_Editor;
+        std::unique_ptr<Editor> m_Editor;
     };
 }
 

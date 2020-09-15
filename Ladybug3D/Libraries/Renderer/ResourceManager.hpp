@@ -18,6 +18,8 @@ namespace Ladybug3D {
 		~ResourceManager();
 
 		bool Initialize();
+		void Destroy();
+
 		std::shared_ptr<Model> GetModel(const std::string& name);
 		std::shared_ptr<D3D12::Texture> GetTexture(const std::string& name);
 		const wchar_t* GetShaderPath(const std::string& name);

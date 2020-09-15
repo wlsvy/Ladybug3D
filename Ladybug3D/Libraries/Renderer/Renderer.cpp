@@ -11,7 +11,6 @@
 #include "ResourceManager.hpp"
 #include "RendererDefine.hpp"
 
-#include <filesystem>
 #include <iostream>
 #include <dxgi1_6.h>
 #include <D3Dcompiler.h>
@@ -75,7 +74,7 @@ namespace Ladybug3D {
 	void Renderer::LoadAssets()
 	{
 		auto& resourceManager = ResourceManager::GetInstance();
-		m_GraphicsCommandList->Begin();
+		m_GraphicsCommandList->Reset();
 
 		resourceManager.Initialize();
 
@@ -182,6 +181,8 @@ namespace Ladybug3D {
 		m_CurrentScene->OnUpdate();
 		m_MainCam->OnUpdate();
 		m_MainCam->UpdateView();
+
+		UpdateConstantBuffer();
 	}
 
 	void Renderer::OnRender()
@@ -202,6 +203,7 @@ namespace Ladybug3D {
 
 		m_CurrentScene->OnDestroy();
 		m_Editor->ShutDownImGui();
+		ResourceManager::GetInstance().Destroy();
 	}
 
 	void Renderer::WaitForPreviousFrame()
@@ -226,13 +228,37 @@ namespace Ladybug3D {
 		for (UINT i = 0; i < MAX_OBJECT_COUNT; i++) {
 			m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(DescriptorHeapIndex::CB_PerObject + i), i);
 		}
+
+		ResourceManager::GetInstance().GetTexture("Sample")->CreateCubeMapShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(DescriptorHeapIndex::SRV_Skybox));
+
+	}
+
+	void Renderer::UpdateConstantBuffer()
+	{
+		m_CB_PerScene->Data->viewMatrix = m_MainCam->GetViewMatrix();
+		m_CB_PerScene->Data->projMatrix = m_MainCam->GetProjectionMatrix();
+		m_CB_PerScene->Data->viewProjMatrix = m_MainCam->GetViewProjectionMatrix();
+
+		auto& sceneObjects = m_CurrentScene->GetSceneObjects();
+		UINT index = 0;
+
+		for (auto& obj : sceneObjects) {
+			for (auto& mesh : obj->Model->GetMeshes()) {
+
+				auto& gpuObjData = m_CB_PerObject->Data[index++];
+
+				gpuObjData.worldMatrix = mesh.GetWorldMatrix() * obj->GetTransform()->GetWorldMatrix();
+				gpuObjData.prevWvpWorld = gpuObjData.curWvpMatrix;
+				gpuObjData.curWvpMatrix = gpuObjData.worldMatrix * m_MainCam->GetViewProjectionMatrix();
+			}
+		}
 	}
 
 	void Renderer::RenderBegin()
 	{
 		m_FrameIndex = m_swapChain->GetCurrentBackBufferIndex();
 
-		m_GraphicsCommandList->Begin();
+		m_GraphicsCommandList->Reset();
 		m_GraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 		m_GraphicsCommandList->ClearRenderTarget(m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex), m_ClearColor);
 		m_GraphicsCommandList->GetCommandList()->RSSetViewports(1, &m_viewport);
@@ -250,30 +276,19 @@ namespace Ladybug3D {
 
 	void Renderer::Pass_Main()
 	{
-		auto& sceneObjects = m_CurrentScene->GetSceneObjects();
-
-		m_CB_PerScene->Data->viewMatrix = m_MainCam->GetViewMatrix();
-		m_CB_PerScene->Data->projMatrix = m_MainCam->GetProjectionMatrix();
-		m_CB_PerScene->Data->viewProjMatrix = m_MainCam->GetViewProjectionMatrix();
 
 		ID3D12DescriptorHeap* ppHeaps[] = { m_ResourceDescriptorHeap->GetDescriptorHeap() };
 		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 		m_GraphicsCommandList->SetPipelineState(m_PSO_Default.get());
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::CB_PerScene, m_ResourceDescriptorHeap->GetGpuHandle(DescriptorHeapIndex::CB_PerScene));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
-
+		
+		auto& sceneObjects = m_CurrentScene->GetSceneObjects();
 		UINT index = 0;
+
 		for (auto& obj : sceneObjects) {
 			for (auto& mesh : obj->Model->GetMeshes()) {
-
-				auto& gpuObjData = m_CB_PerObject->Data[index];
-
-				gpuObjData.worldMatrix = mesh.GetWorldMatrix() * obj->GetTransform()->GetWorldMatrix();
-				gpuObjData.prevWvpWorld = gpuObjData.curWvpMatrix;
-				gpuObjData.curWvpMatrix = gpuObjData.worldMatrix * m_MainCam->GetViewProjectionMatrix();
-				m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(DescriptorHeapIndex::CB_PerObject + index));
-				index++;
-
+				m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(DescriptorHeapIndex::CB_PerObject + index++));
 				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
 				m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
 				m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);

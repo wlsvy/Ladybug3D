@@ -9,7 +9,7 @@ namespace Ladybug3D::D3D12 {
 		GraphicsCommandList(ID3D12Device* device);
 		~GraphicsCommandList();
 
-		bool Begin(ID3D12PipelineState* pipelineState = nullptr);
+		bool Reset(ID3D12PipelineState* pipelineState = nullptr);
 		void Close();
 		void ClearRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE rtv, const float* clearColor);
 		void ResourceBarrier(UINT numBarrier, const D3D12_RESOURCE_BARRIER* barrier);

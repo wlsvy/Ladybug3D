@@ -24,7 +24,7 @@ namespace Ladybug3D::D3D12 {
 	{
 	}
 
-	bool GraphicsCommandList::Begin(ID3D12PipelineState* pipelineState)
+	bool GraphicsCommandList::Reset(ID3D12PipelineState* pipelineState)
 	{
 		ThrowIfFailed(m_CommandAllocator->Reset());
 		ThrowIfFailed(m_CommandList->Reset(m_CommandAllocator.Get(), pipelineState));
