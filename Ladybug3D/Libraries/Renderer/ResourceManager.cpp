@@ -143,12 +143,14 @@ namespace Ladybug3D {
 
 		for (auto& pair : m_DDSTexturePathMap) {
 			cout << "Load Texture : " << pair.second << endl;
-			ComPtr<ID3D12Resource> uploadHeap;
 
 			auto texture = make_shared<Texture>();
-			DirectX::CreateDDSTextureFromFile12(device, cmdList->GetCommandList(), pair.second.c_str(), texture->GetResourceComPtr(), uploadHeap);
+			ComPtr<ID3D12Resource> uploadHeap;
+
+			DirectX::CreateDDSTextureFromFile12(device, cmdList->GetCommandList(), pair.second.c_str(), texture->GetResourceAddress(), uploadHeap.GetAddressOf());
 			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(texture->GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_GENERIC_READ));
 			cmdList->TrackObject(uploadHeap);
+
 			m_TextureMap[pair.first] = texture;
 		}
 

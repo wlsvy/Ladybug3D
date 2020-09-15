@@ -1240,8 +1240,8 @@ static HRESULT CreateD3DResources12(
 	_In_ bool forceSRGB,
 	_In_ bool isCubeMap,
 	_In_reads_opt_(mipCount*arraySize) D3D12_SUBRESOURCE_DATA* initData,
-	ComPtr<ID3D12Resource>& texture,
-	ComPtr<ID3D12Resource>& textureUploadHeap
+	ID3D12Resource** texture,
+	ID3D12Resource** textureUploadHeap
 	)
 {
 	if (device == nullptr)
@@ -1275,18 +1275,18 @@ static HRESULT CreateD3DResources12(
 			&texDesc,
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
-			IID_PPV_ARGS(&texture)
+			IID_PPV_ARGS(texture)
 			);
 
 		if (FAILED(hr))
 		{
-			texture = nullptr;
+			//texture = nullptr;
 			return hr;
 		}
 		else
 		{
 			const UINT num2DSubresources = texDesc.DepthOrArraySize * texDesc.MipLevels;
-			const UINT64 uploadBufferSize = GetRequiredIntermediateSize(texture.Get(), 0, num2DSubresources);
+			const UINT64 uploadBufferSize = GetRequiredIntermediateSize(*texture, 0, num2DSubresources);
 
 			hr = device->CreateCommittedResource(
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -1294,21 +1294,21 @@ static HRESULT CreateD3DResources12(
 				&CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
 				D3D12_RESOURCE_STATE_GENERIC_READ,
 				nullptr,
-				IID_PPV_ARGS(&textureUploadHeap));
+				IID_PPV_ARGS(textureUploadHeap));
 			if (FAILED(hr))
 			{
-				texture = nullptr;
+				//texture = nullptr;
 				return hr;
 			}
 			else
 			{
-				cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(),
+				cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(*texture,
 					D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
 
 				// Use Heap-allocating UpdateSubresources implementation for variable number of subresources (which is the case for textures).
-				UpdateSubresources(cmdList, texture.Get(), textureUploadHeap.Get(), 0, 0, num2DSubresources, initData);
+				UpdateSubresources(cmdList, *texture, *textureUploadHeap, 0, 0, num2DSubresources, initData);
 
-				cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(),
+				cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(*texture,
 					D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
 			}
 		}
@@ -1677,8 +1677,8 @@ static HRESULT CreateTextureFromDDS12(
 	_In_ size_t bitSize,
 	_In_ size_t maxsize,
 	_In_ bool forceSRGB,
-	ComPtr<ID3D12Resource>& texture,
-	ComPtr<ID3D12Resource>& textureUploadHeap)
+	ID3D12Resource** texture,
+	ID3D12Resource** textureUploadHeap)
 {
 	HRESULT hr = S_OK;
 
@@ -1923,8 +1923,8 @@ HRESULT DirectX::CreateDDSTextureFromMemory12(
 	_In_ ID3D12GraphicsCommandList* cmdList,
 	_In_reads_bytes_(ddsDataSize) const uint8_t* ddsData,
 	_In_ size_t ddsDataSize,
-	ComPtr<ID3D12Resource>& texture,
-	ComPtr<ID3D12Resource>& textureUploadHeap,
+	ID3D12Resource** texture,
+	ID3D12Resource** textureUploadHeap,
 	_In_ size_t maxsize,
 	_Out_opt_ DDS_ALPHA_MODE* alphaMode
 	)
@@ -2040,14 +2040,6 @@ HRESULT DirectX::CreateDDSTextureFromMemoryEx( ID3D11Device* d3dDevice,
                                                ID3D11ShaderResourceView** textureView,
                                                DDS_ALPHA_MODE* alphaMode )
 {
-    if ( texture )
-    {
-        *texture = nullptr;
-    }
-    if ( textureView )
-    {
-        *textureView = nullptr;
-    }
     if ( alphaMode )
     {
         *alphaMode = DDS_ALPHA_MODE_UNKNOWN;
@@ -2137,19 +2129,11 @@ HRESULT DirectX::CreateDDSTextureFromFile( ID3D11Device* d3dDevice,
 HRESULT DirectX::CreateDDSTextureFromFile12(_In_ ID3D12Device* device,
 	_In_ ID3D12GraphicsCommandList* cmdList,
 	_In_z_ const wchar_t* szFileName,
-	_Out_ ComPtr<ID3D12Resource>& texture,
-	_Out_ ComPtr<ID3D12Resource>& textureUploadHeap,
+	_Out_ ID3D12Resource** texture,
+	_Out_ ID3D12Resource** textureUploadHeap,
 	_In_ size_t maxsize,
 	_Out_opt_ DDS_ALPHA_MODE* alphaMode)
 {
-	if (texture)
-	{
-		texture = nullptr;
-	}
-	if (textureUploadHeap)
-	{
-		textureUploadHeap = nullptr;
-	}
 	if (alphaMode)
 	{
 		*alphaMode = DDS_ALPHA_MODE_UNKNOWN;
@@ -2176,51 +2160,6 @@ HRESULT DirectX::CreateDDSTextureFromFile12(_In_ ID3D12Device* device,
 
 	if (SUCCEEDED(hr))
 	{
-/*
-#if !defined(NO_D3D11_DEBUG_NAME) && ( defined(_DEBUG) || defined(PROFILE) )
-		if (texture != 0 || textureView != 0)
-		{
-			CHAR strFileA[MAX_PATH];
-			int result = WideCharToMultiByte(CP_ACP,
-				WC_NO_BEST_FIT_CHARS,
-				fileName,
-				-1,
-				strFileA,
-				MAX_PATH,
-				nullptr,
-				FALSE
-				);
-			if (result > 0)
-			{
-				const CHAR* pstrName = strrchr(strFileA, '\\');
-				if (!pstrName)
-				{
-					pstrName = strFileA;
-				}
-				else
-				{
-					pstrName++;
-				}
-
-				if (texture != 0 && *texture != 0)
-				{
-					(*texture)->SetPrivateData(WKPDID_D3DDebugObjectName,
-						static_cast<UINT>(strnlen_s(pstrName, MAX_PATH)),
-						pstrName
-						);
-				}
-
-				if (textureView != 0 && *textureView != 0)
-				{
-					(*textureView)->SetPrivateData(WKPDID_D3DDebugObjectName,
-						static_cast<UINT>(strnlen_s(pstrName, MAX_PATH)),
-						pstrName
-						);
-				}
-			}
-		}
-#endif
-*/
 		if (alphaMode)
 			*alphaMode = GetAlphaMode(header);
 	}
