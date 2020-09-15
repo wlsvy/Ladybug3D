@@ -7,6 +7,7 @@
 #include <D3D12/D3D12_Util.hpp>
 #include <D3D12/D3D12_Texture.hpp>
 #include <D3D12/D3D12_VertexType.hpp>
+#include <D3D12/DDSTextureLoader.h>
 
 #include <Direct12XTK/Include/ResourceUploadBatch.h>
 
@@ -92,6 +93,14 @@ namespace Ladybug3D {
 				}
 				m_TexturePathMap[stem] = resource.path();
 			}
+			else if (extension == L".dds") {
+				cout << "Find DDS Texture At " << resource << endl;
+				if (m_DDSTexturePathMap.find(stem) != m_DDSTexturePathMap.end()) {
+					cout << "Texture : " << stem << " or same named Texture is already found" << endl;
+					continue;
+				}
+				m_DDSTexturePathMap[stem] = resource.path();
+			}
 			else if (extension == L".obj" ||
 				extension == L".fbx")
 			{
@@ -117,6 +126,7 @@ namespace Ladybug3D {
 	void ResourceManager::LoadTextures()
 	{
 		auto device = Renderer::GetInstance().GetDevice();
+		auto cmdList = Renderer::GetInstance().GetGraphicsCommandList();
 		auto commandQueue = Renderer::GetInstance().GetCommandQueue();
 
 		DirectX::ResourceUploadBatch uploadBatch(device);
@@ -130,6 +140,18 @@ namespace Ladybug3D {
 		}
 
 		auto finish = uploadBatch.End(commandQueue);
+
+		for (auto& pair : m_DDSTexturePathMap) {
+			cout << "Load Texture : " << pair.second << endl;
+			ComPtr<ID3D12Resource> uploadHeap;
+
+			auto texture = make_shared<Texture>();
+			DirectX::CreateDDSTextureFromFile12(device, cmdList->GetCommandList(), pair.second.c_str(), texture->GetResourceComPtr(), uploadHeap);
+			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(texture->GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_GENERIC_READ));
+			cmdList->TrackObject(uploadHeap);
+			m_TextureMap[pair.first] = texture;
+		}
+
 		finish.wait();
 	}
 

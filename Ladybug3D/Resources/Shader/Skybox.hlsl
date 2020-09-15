@@ -28,8 +28,7 @@ struct PS_OUTPUT_Deferred
 PSInput VSMain(VSInput input)
 {
 	PSInput output;
-    float4x4 wvpMatrix = g_CameraWorldMatrix * g_ViewProjMatrix;
-    output.position = mul(wvpMatrix, float4(input.position, 1.0f)).xyww; // z / w = 1이 되도록(즉 하늘 돔이 항상 면 평면에 있도록) z = w로 설정
+    output.position = mul(g_ViewProjMatrix, float4(input.position + g_CameraWorldPosition.xyz, 1.0f)).xyww; // z / w = 1이 되도록(즉 하늘 돔이 항상 면 평면에 있도록) z = w로 설정
     output.localPosition = input.position;
     return output;
 }
@@ -38,7 +37,7 @@ float4 PSMain(PSInput input) : SV_TARGET
 {
     //return float4(0.2f, 1.0f, 1.0f, 1.0f);
 
-    //return SkyboxCubeMap.Sample(PointClamp, input.localPosition);
+    return SkyboxCubeMap.Sample(PointClamp, input.localPosition);
     //float3 col = SkyboxCubeMap.Sample(PointClamp, input.localPosition);
     //return float4(col, 1.0f);
     return float4(0.4f, 0.4f, 0.7f, 1.0f);

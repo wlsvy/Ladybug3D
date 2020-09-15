@@ -13,6 +13,7 @@ namespace Ladybug3D::D3D12 {
 		Resource& operator=(Resource&&) noexcept = default;
 
 		auto GetResource() { return m_Resource.Get(); }
+		auto& GetResourceComPtr() { return m_Resource; }
 
 	protected:
 		void CreateBuffer(

@@ -9,6 +9,7 @@ cbuffer CB_PerScene : register(b0)
 
     float4x4 g_CameraWorldMatrix;
     float4 g_CameraWorldPosition;
+    float4 pad[3];
 
 };
 cbuffer CB_PerObject : register(b1)
@@ -20,7 +21,7 @@ cbuffer CB_PerObject : register(b1)
 };
 
 Texture2D SampleTexture : register(t0);
-//TextureCube SkyboxCubeMap : register(t0);
+TextureCube SkyboxCubeMap : register(t1);
 
 SamplerState PointClamp : register(s0);
 SamplerState LinearClamp : register(s1);

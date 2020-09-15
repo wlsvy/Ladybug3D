@@ -3,6 +3,7 @@
 #include "Transform.hpp"
 #include <ImGui/imgui.h>
 #include <Windows.h>
+#include <iostream>
 
 using namespace DirectX;
 using namespace std;
@@ -31,11 +32,16 @@ namespace Ladybug3D {
 
 	void Camera::OnUpdate()
 	{
+		static ImVec2 prevMousePos;
+
 		float dt = 1.0f / ImGui::GetIO().Framerate;
 		Transform& tf = *m_Transform;
 
-		auto dragDelta = ImGui::GetMouseDragDelta(1);
-		if (abs(dragDelta.x) > 0.01 || abs(dragDelta.y) > 0.01) {
+
+		if (ImGui::IsMouseDragging(1))
+		{
+			auto curMousePos = ImGui::GetMousePos();
+			auto dragDelta = ImVec2(curMousePos.x - prevMousePos.x, curMousePos.y - prevMousePos.y);
 			tf.rotate(dragDelta.y * m_RotateSpeed * dt, dragDelta.x * m_RotateSpeed * dt, 0.0f);
 			ImGui::ResetMouseDragDelta(1);
 		}
@@ -46,5 +52,7 @@ namespace Ladybug3D {
 		if (ImGui::IsKeyDown('S')) tf.translate(tf.GetBackwardVector() * speed * dt);
 		if (ImGui::IsKeyDown('A')) tf.translate(tf.GetLeftVector() * speed * dt);
 		if (ImGui::IsKeyDown('D')) tf.translate(tf.GetRightVector() * speed * dt);
+
+		prevMousePos = ImGui::GetMousePos();
 	}
 }

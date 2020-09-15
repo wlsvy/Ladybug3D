@@ -67,6 +67,7 @@ namespace Ladybug3D {
 			m_MainCam = make_shared<Camera>();
 			m_MainCam->SetProjectionValues(90.0f, m_aspectRatio, 0.1f, 1000.0f);
 
+			
 		}
 		catch (exception& e) {
 			cout << e.what() << endl;
@@ -114,7 +115,7 @@ namespace Ladybug3D {
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);	//b0
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);	//b1
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);	//t0 - skybox
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);	//t0 ~ t1
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[3];
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
@@ -212,6 +213,7 @@ namespace Ladybug3D {
 			psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
 			psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
 			psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+			psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 			psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 			psoDesc.DepthStencilState.DepthEnable = FALSE;
 			psoDesc.DepthStencilState.StencilEnable = FALSE;
@@ -237,7 +239,7 @@ namespace Ladybug3D {
 	void Renderer::OnRender()
 	{
 		RenderBegin();
-		//Pass_Skybox();
+		Pass_Skybox();
 		Pass_Main();
 		Pass_Editor();
 		RenderEnd();
@@ -279,26 +281,9 @@ namespace Ladybug3D {
 			m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::CB_PerObject + i), i);
 		}
 		
-		ResourceManager::GetInstance().GetTexture("Sample")->CreateShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_Skybox));
-		//ResourceManager::GetInstance().GetTexture("Sample")->CreateCubeMapShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_Skybox));
-		//m_SampleCubeMap[0]->CreateCubeMapShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_Skybox));
+		ResourceManager::GetInstance().GetTexture("Sample")->CreateShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_SampleTexture));
+		ResourceManager::GetInstance().GetTexture("grasscube1024")->CreateCubeMapShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_Skybox));
 
-	}
-
-	void Renderer::CreateSampler()
-	{
-		//CD3DX12_STATIC_SAMPLER_DESC ad;
-		//D3D12_SAMPLER_DESC desc = {};
-		//desc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR; // Could be anisotropic
-		//desc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS;
-		//desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-		//desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-		//desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-		//desc.BorderColor[0] = 1.0f;
-		//desc.BorderColor[1] = 1.0f;
-		//desc.BorderColor[2] = 1.0f;
-		//desc.BorderColor[3] = 1.0f;
-		//m_Device->CreateSampler(&desc, samplerHeap.hCPUHeapStart);
 	}
 
 	void Renderer::UpdateConstantBuffer()
@@ -307,6 +292,7 @@ namespace Ladybug3D {
 		m_CB_PerScene->Data->projMatrix = m_MainCam->GetProjectionMatrix();
 		m_CB_PerScene->Data->viewProjMatrix = m_MainCam->GetViewProjectionMatrix();
 		m_CB_PerScene->Data->CameraWorldPosition = m_MainCam->GetTransform()->positionVec;
+		m_MainCam->GetTransform()->scale = XMFLOAT3(100, 100, 100);
 		m_CB_PerScene->Data->CameraWorldMatrix = XMMatrixTranslationFromVector(m_MainCam->GetTransform()->positionVec);
 
 		auto& sceneObjects = m_CurrentScene->GetSceneObjects();
@@ -366,7 +352,7 @@ namespace Ladybug3D {
 
 		m_GraphicsCommandList->SetPipelineState(m_PSO_Default.get());
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::CB_PerScene, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::CB_PerScene));
-		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::SRV_Skybox, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::SRV_Skybox));
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::SRV_Texture, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::SRV_SampleTexture));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 		
 		auto& sceneObjects = m_CurrentScene->GetSceneObjects();
@@ -396,16 +382,17 @@ namespace Ladybug3D {
 
 	void Renderer::Pass_Skybox()
 	{
-		static auto s_CubeModel = ResourceManager::GetInstance().GetModel("cube").get();
+		static auto s_CubeModel = ResourceManager::GetInstance().GetModel("sphere").get();
 
 		m_GraphicsCommandList->SetPipelineState(m_PSO_Skybox.get());
-		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::SRV_Skybox, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::SRV_Skybox));
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::SRV_Texture, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::SRV_SampleTexture));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
 		for (auto& mesh : s_CubeModel->GetMeshes()) {
 			m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
 			m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
 			m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
+			m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::CB_PerObject + 10));
 		}
 	}
 }

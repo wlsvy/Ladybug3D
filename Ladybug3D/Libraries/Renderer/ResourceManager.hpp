@@ -31,6 +31,7 @@ namespace Ladybug3D {
 		void LoadModels();
 		
 		std::unordered_map<std::string, std::filesystem::path> m_ModelPathMap;
+		std::unordered_map<std::string, std::filesystem::path> m_DDSTexturePathMap;
 		std::unordered_map<std::string, std::filesystem::path> m_TexturePathMap;
 		std::unordered_map<std::string, std::filesystem::path> m_ShaderPathMap;
 
