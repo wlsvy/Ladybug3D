@@ -68,6 +68,14 @@ namespace Ladybug3D {
 		return nullptr;
 	}
 
+	const wchar_t* ResourceManager::GetTexturePath(const std::string& name)
+	{
+		if (auto iter = m_TexturePathMap.find(name); iter != m_TexturePathMap.end()) {
+			return iter->second.c_str();
+		}
+		return nullptr;
+	}
+
 	void ResourceManager::TrackAssetsPath()
 	{
 		for (auto& resource : filesystem::recursive_directory_iterator(LADYBUG3D_RESOURCE_PATH)) {

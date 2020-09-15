@@ -60,6 +60,8 @@ namespace Ladybug3D {
         std::shared_ptr<Camera> m_MainCam;
 
         std::unique_ptr<Editor> m_Editor;
+
+        std::unique_ptr<D3D12::Texture> m_SampleCubeMap[6];
     };
 }
 

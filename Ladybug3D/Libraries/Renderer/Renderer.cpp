@@ -22,6 +22,8 @@
 #include <D3D12/D3D12_ConstantBuffer.hpp>
 #include <D3D12/D3D12_PipelineState.hpp>
 
+#include <Direct12XTK/Include/ResourceUploadBatch.h>
+
 
 using namespace std;
 using namespace DirectX;
@@ -64,6 +66,7 @@ namespace Ladybug3D {
 			m_Editor->Initialize(hwnd, m_Device.Get(), SWAPCHAIN_BUFFER_COUNT);
 			m_MainCam = make_shared<Camera>();
 			m_MainCam->SetProjectionValues(90.0f, m_aspectRatio, 0.1f, 1000.0f);
+
 		}
 		catch (exception& e) {
 			cout << e.what() << endl;
@@ -88,6 +91,7 @@ namespace Ladybug3D {
 
 	void Renderer::CreatePipelineState()
 	{
+		HRESULT hr;
 		D3D12_INPUT_ELEMENT_DESC inputElement_Vertex3D[] =
 		{
 			{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -129,11 +133,12 @@ namespace Ladybug3D {
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, _countof(samplerDesc), samplerDesc, rootSignatureFlag);
+		//rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlag);
 
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
 		ComPtr<ID3D12RootSignature> rootSignature;
-		HRESULT hr = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
+		hr = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
 		if (FAILED(hr)) {
 			cout << "Failed To Serialize RootSignature - " <<  static_cast<const char*>(error->GetBufferPointer()) << endl;
 			ThrowIfFailed(hr);
@@ -155,7 +160,7 @@ namespace Ladybug3D {
 			ComPtr<ID3DBlob> errorMsg;
 			auto ShaderPath = resourceManager.GetShaderPath("shaders");
 
-			HRESULT hr = D3DCompileFromFile(ShaderPath, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg);
+			hr = D3DCompileFromFile(ShaderPath, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg);
 			if (FAILED(hr)) {
 				cout << "Failed To Compile Shader - " << ShaderPath << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
 				ThrowIfFailed(hr);
@@ -185,12 +190,12 @@ namespace Ladybug3D {
 		}
 		
 		{
-			/*ComPtr<ID3DBlob> vertexShader;
+			ComPtr<ID3DBlob> vertexShader;
 			ComPtr<ID3DBlob> pixelShader;
 			ComPtr<ID3DBlob> errorMsg;
 			auto ShaderPath = resourceManager.GetShaderPath("Skybox");
 
-			HRESULT hr = D3DCompileFromFile(ShaderPath, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg);
+			hr = D3DCompileFromFile(ShaderPath, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg);
 			if (FAILED(hr)) {
 				cout << "Failed To Compile Shader - " << ShaderPath << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
 				ThrowIfFailed(hr);
@@ -216,7 +221,7 @@ namespace Ladybug3D {
 			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 			psoDesc.SampleDesc.Count = 1;
 
-			m_PSO_Skybox = make_unique<PipelineState>(m_Device.Get(), &psoDesc);*/
+			m_PSO_Skybox = make_unique<PipelineState>(m_Device.Get(), &psoDesc);
 		}
 	}
 
@@ -232,6 +237,7 @@ namespace Ladybug3D {
 	void Renderer::OnRender()
 	{
 		RenderBegin();
+		//Pass_Skybox();
 		Pass_Main();
 		Pass_Editor();
 		RenderEnd();
@@ -272,8 +278,10 @@ namespace Ladybug3D {
 		for (UINT i = 0; i < MAX_OBJECT_COUNT; i++) {
 			m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::CB_PerObject + i), i);
 		}
-
-		ResourceManager::GetInstance().GetTexture("Sample")->CreateCubeMapShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_Skybox));
+		
+		ResourceManager::GetInstance().GetTexture("Sample")->CreateShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_Skybox));
+		//ResourceManager::GetInstance().GetTexture("Sample")->CreateCubeMapShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_Skybox));
+		//m_SampleCubeMap[0]->CreateCubeMapShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_Skybox));
 
 	}
 
@@ -298,6 +306,8 @@ namespace Ladybug3D {
 		m_CB_PerScene->Data->viewMatrix = m_MainCam->GetViewMatrix();
 		m_CB_PerScene->Data->projMatrix = m_MainCam->GetProjectionMatrix();
 		m_CB_PerScene->Data->viewProjMatrix = m_MainCam->GetViewProjectionMatrix();
+		m_CB_PerScene->Data->CameraWorldPosition = m_MainCam->GetTransform()->positionVec;
+		m_CB_PerScene->Data->CameraWorldMatrix = XMMatrixTranslationFromVector(m_MainCam->GetTransform()->positionVec);
 
 		auto& sceneObjects = m_CurrentScene->GetSceneObjects();
 		UINT index = 0;
@@ -337,6 +347,9 @@ namespace Ladybug3D {
 		m_GraphicsCommandList->ClearRenderTarget(m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex), m_ClearColor);
 		m_GraphicsCommandList->GetCommandList()->RSSetViewports(1, &m_viewport);
 		m_GraphicsCommandList->GetCommandList()->RSSetScissorRects(1, &m_scissorRect);
+
+		ID3D12DescriptorHeap* ppHeaps[] = { m_ResourceDescriptorHeap->GetDescriptorHeap() };
+		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 	}
 
 	void Renderer::RenderEnd()
@@ -351,8 +364,6 @@ namespace Ladybug3D {
 	void Renderer::Pass_Main()
 	{
 
-		ID3D12DescriptorHeap* ppHeaps[] = { m_ResourceDescriptorHeap->GetDescriptorHeap() };
-		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 		m_GraphicsCommandList->SetPipelineState(m_PSO_Default.get());
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::CB_PerScene, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::CB_PerScene));
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::SRV_Skybox, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::SRV_Skybox));
@@ -385,5 +396,16 @@ namespace Ladybug3D {
 
 	void Renderer::Pass_Skybox()
 	{
+		static auto s_CubeModel = ResourceManager::GetInstance().GetModel("cube").get();
+
+		m_GraphicsCommandList->SetPipelineState(m_PSO_Skybox.get());
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::SRV_Skybox, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::SRV_Skybox));
+		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
+
+		for (auto& mesh : s_CubeModel->GetMeshes()) {
+			m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
+			m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
+			m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
+		}
 	}
 }

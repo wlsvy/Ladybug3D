@@ -23,6 +23,7 @@ namespace Ladybug3D {
 		std::shared_ptr<Model> GetModel(const std::string& name);
 		std::shared_ptr<D3D12::Texture> GetTexture(const std::string& name);
 		const wchar_t* GetShaderPath(const std::string& name);
+		const wchar_t* GetTexturePath(const std::string& name);
 
 	private:
 		void TrackAssetsPath();
