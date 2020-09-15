@@ -66,4 +66,13 @@ namespace Ladybug3D::D3D12 {
 	{
 		m_TrackedObject.push_back(obj);
 	}
+
+	void GraphicsCommandList::DrawScreenQuad() {
+		static D3D12_VERTEX_BUFFER_VIEW screenVertexBufferView = { 0, 0, 0 };
+		static D3D12_INDEX_BUFFER_VIEW screenIndexBufferView = { 0, 0, DXGI_FORMAT_R32_UINT };
+
+		m_CommandList->IASetVertexBuffers(0, 0, &screenVertexBufferView);
+		m_CommandList->IASetIndexBuffer(&screenIndexBufferView);
+		m_CommandList->DrawInstanced(4, 1, 0, 0);
+	}
 }

@@ -48,7 +48,8 @@ namespace Ladybug3D {
 			}
 
 			m_GraphicsCommandList = make_unique<GraphicsCommandList>(m_Device.Get());
-			m_ResourceDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, DescriptorHeapIndex::Max);
+			m_ResourceDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, ResourceDescriptorIndex::Max);
+			m_SamplerDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, ResourceDescriptorIndex::Max);
 
 			m_CB_PerObject = make_unique<ConstantBuffer<CB_PerObject>>(m_Device.Get(), MAX_OBJECT_COUNT);
 			m_CB_PerScene = make_unique<ConstantBuffer<CB_PerScene>>(m_Device.Get());
@@ -106,20 +107,23 @@ namespace Ladybug3D {
 			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 		}
 
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);	//b0
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);	//b1
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);	//t0 - skybox
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[2];
+		CD3DX12_ROOT_PARAMETER1 rootParameters[3];
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
+		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
 
-		CD3DX12_STATIC_SAMPLER_DESC samplerDesc[2];
-		samplerDesc[0].Init(0, D3D12_FILTER_ANISOTROPIC);
-		samplerDesc[1].Init(1, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR,
-			D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
-			D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
-			D3D12_TEXTURE_ADDRESS_MODE_MIRROR);
+		CD3DX12_STATIC_SAMPLER_DESC samplerDesc[6];
+		samplerDesc[0].Init(0, D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);			//s0 : pointClamp
+		samplerDesc[1].Init(1, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);	//s1 : linearClamp
+		samplerDesc[2].Init(2, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP);		//s2 : linearWrap
+		samplerDesc[3].Init(3, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_MIRROR, D3D12_TEXTURE_ADDRESS_MODE_MIRROR, D3D12_TEXTURE_ADDRESS_MODE_MIRROR);	//s3 : linearMirror
+		samplerDesc[4].Init(4, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_MIRROR, D3D12_TEXTURE_ADDRESS_MODE_MIRROR, D3D12_TEXTURE_ADDRESS_MODE_MIRROR);		//s4 : trilinearMirror
+		samplerDesc[5].Init(5, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_MIRROR, D3D12_TEXTURE_ADDRESS_MODE_MIRROR, D3D12_TEXTURE_ADDRESS_MODE_MIRROR);				//s5 : anisotropicMirror
 
 		auto rootSignatureFlag = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
@@ -129,8 +133,11 @@ namespace Ladybug3D {
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
 		ComPtr<ID3D12RootSignature> rootSignature;
-		ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error),
-			"Failed To Serialize RootSignature");
+		HRESULT hr = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error);
+		if (FAILED(hr)) {
+			cout << "Failed To Serialize RootSignature - " <<  static_cast<const char*>(error->GetBufferPointer()) << endl;
+			ThrowIfFailed(hr);
+		}
 		ThrowIfFailed(m_Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&rootSignature)),
 			"Failed To Create RootSignature");
 
@@ -142,38 +149,75 @@ namespace Ladybug3D {
 
 		auto& resourceManager = ResourceManager::GetInstance();
 
-		ComPtr<ID3DBlob> vertexShader;
-		ComPtr<ID3DBlob> pixelShader;
-		ComPtr<ID3DBlob> errorMsg;
+		{
+			ComPtr<ID3DBlob> vertexShader;
+			ComPtr<ID3DBlob> pixelShader;
+			ComPtr<ID3DBlob> errorMsg;
+			auto ShaderPath = resourceManager.GetShaderPath("shaders");
 
-		HRESULT hr = D3DCompileFromFile(resourceManager.GetShaderPath("shaders"), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg);
-		if (FAILED(hr)) {
-			cout << "Failed To Compile Shader - " << resourceManager.GetShaderPath("shaders") << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
-			ThrowIfFailed(hr);
+			HRESULT hr = D3DCompileFromFile(ShaderPath, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg);
+			if (FAILED(hr)) {
+				cout << "Failed To Compile Shader - " << ShaderPath << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
+				ThrowIfFailed(hr);
+			}
+			hr = D3DCompileFromFile(ShaderPath, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, &errorMsg);
+			if (FAILED(hr)) {
+				cout << "Failed To Compile Shader - " << ShaderPath << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
+				ThrowIfFailed(hr);
+			}
+
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+			psoDesc.InputLayout = { inputElement_Vertex3D, _countof(inputElement_Vertex3D) };
+			psoDesc.pRootSignature = rootSignature.Get();
+			psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
+			psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
+			psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+			psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+			psoDesc.DepthStencilState.DepthEnable = FALSE;
+			psoDesc.DepthStencilState.StencilEnable = FALSE;
+			psoDesc.SampleMask = UINT_MAX;
+			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+			psoDesc.NumRenderTargets = 1;
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+			psoDesc.SampleDesc.Count = 1;
+
+			m_PSO_Default = make_unique<PipelineState>(m_Device.Get(), &psoDesc);
 		}
-		hr = D3DCompileFromFile(resourceManager.GetShaderPath("shaders"), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, &errorMsg);
-		if (FAILED(hr)) {
-			cout << "Failed To Compile Shader - " << resourceManager.GetShaderPath("shaders") << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
-			ThrowIfFailed(hr);
+		
+		{
+			/*ComPtr<ID3DBlob> vertexShader;
+			ComPtr<ID3DBlob> pixelShader;
+			ComPtr<ID3DBlob> errorMsg;
+			auto ShaderPath = resourceManager.GetShaderPath("Skybox");
+
+			HRESULT hr = D3DCompileFromFile(ShaderPath, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, &errorMsg);
+			if (FAILED(hr)) {
+				cout << "Failed To Compile Shader - " << ShaderPath << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
+				ThrowIfFailed(hr);
+			}
+			hr = D3DCompileFromFile(ShaderPath, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, &errorMsg);
+			if (FAILED(hr)) {
+				cout << "Failed To Compile Shader - " << ShaderPath << " : " << static_cast<const char*>(errorMsg->GetBufferPointer()) << endl;
+				ThrowIfFailed(hr);
+			}
+
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+			psoDesc.InputLayout = { inputElement_Vertex3D, _countof(inputElement_Vertex3D) };
+			psoDesc.pRootSignature = rootSignature.Get();
+			psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
+			psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
+			psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+			psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+			psoDesc.DepthStencilState.DepthEnable = FALSE;
+			psoDesc.DepthStencilState.StencilEnable = FALSE;
+			psoDesc.SampleMask = UINT_MAX;
+			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+			psoDesc.NumRenderTargets = 1;
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+			psoDesc.SampleDesc.Count = 1;
+
+			m_PSO_Skybox = make_unique<PipelineState>(m_Device.Get(), &psoDesc);*/
 		}
-
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-		psoDesc.InputLayout = { inputElement_Vertex3D, _countof(inputElement_Vertex3D) };
-		psoDesc.pRootSignature = rootSignature.Get();
-		psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
-		psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
-		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-		psoDesc.DepthStencilState.DepthEnable = FALSE;
-		psoDesc.DepthStencilState.StencilEnable = FALSE;
-		psoDesc.SampleMask = UINT_MAX;
-		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-		psoDesc.SampleDesc.Count = 1;
-
-		m_PSO_Default = make_unique<PipelineState>(m_Device.Get(), &psoDesc);
-
 	}
 
 	void Renderer::OnUpdate()
@@ -223,14 +267,30 @@ namespace Ladybug3D {
 	void Renderer::CreateResourceView()
 	{
 		//CBV, SRV
-		m_CB_PerScene->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(DescriptorHeapIndex::CB_PerScene));
+		m_CB_PerScene->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::CB_PerScene));
 
 		for (UINT i = 0; i < MAX_OBJECT_COUNT; i++) {
-			m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(DescriptorHeapIndex::CB_PerObject + i), i);
+			m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::CB_PerObject + i), i);
 		}
 
-		ResourceManager::GetInstance().GetTexture("Sample")->CreateCubeMapShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(DescriptorHeapIndex::SRV_Skybox));
+		ResourceManager::GetInstance().GetTexture("Sample")->CreateCubeMapShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_Skybox));
 
+	}
+
+	void Renderer::CreateSampler()
+	{
+		//CD3DX12_STATIC_SAMPLER_DESC ad;
+		//D3D12_SAMPLER_DESC desc = {};
+		//desc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR; // Could be anisotropic
+		//desc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS;
+		//desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		//desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		//desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		//desc.BorderColor[0] = 1.0f;
+		//desc.BorderColor[1] = 1.0f;
+		//desc.BorderColor[2] = 1.0f;
+		//desc.BorderColor[3] = 1.0f;
+		//m_Device->CreateSampler(&desc, samplerHeap.hCPUHeapStart);
 	}
 
 	void Renderer::UpdateConstantBuffer()
@@ -252,6 +312,20 @@ namespace Ladybug3D {
 				gpuObjData.curWvpMatrix = gpuObjData.worldMatrix * m_MainCam->GetViewProjectionMatrix();
 			}
 		}
+	}
+
+	void Renderer::DrawMesh()
+	{
+	}
+
+	void Renderer::DrawScreenQuad()
+	{
+		static D3D12_VERTEX_BUFFER_VIEW screenVertexBufferView = {0, 0, 0};
+		static D3D12_INDEX_BUFFER_VIEW screenIndexBufferView = { 0, 0, DXGI_FORMAT_R32_UINT };
+
+		m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 0, &screenVertexBufferView);
+		m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(&screenIndexBufferView);
+		m_GraphicsCommandList->GetCommandList()->DrawInstanced(4, 1, 0, 0);
 	}
 
 	void Renderer::RenderBegin()
@@ -280,7 +354,8 @@ namespace Ladybug3D {
 		ID3D12DescriptorHeap* ppHeaps[] = { m_ResourceDescriptorHeap->GetDescriptorHeap() };
 		m_GraphicsCommandList->GetCommandList()->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 		m_GraphicsCommandList->SetPipelineState(m_PSO_Default.get());
-		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::CB_PerScene, m_ResourceDescriptorHeap->GetGpuHandle(DescriptorHeapIndex::CB_PerScene));
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::CB_PerScene, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::CB_PerScene));
+		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::SRV_Skybox, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::SRV_Skybox));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 		
 		auto& sceneObjects = m_CurrentScene->GetSceneObjects();
@@ -288,7 +363,7 @@ namespace Ladybug3D {
 
 		for (auto& obj : sceneObjects) {
 			for (auto& mesh : obj->Model->GetMeshes()) {
-				m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(DescriptorHeapIndex::CB_PerObject + index++));
+				m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(1, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::CB_PerObject + index++));
 				m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
 				m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
 				m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
@@ -306,5 +381,9 @@ namespace Ladybug3D {
 		m_Editor->DrawSampleWindow();
 		m_Editor->DrawSceneGraph();
 		m_Editor->Render(m_GraphicsCommandList->GetCommandList());
+	}
+
+	void Renderer::Pass_Skybox()
+	{
 	}
 }

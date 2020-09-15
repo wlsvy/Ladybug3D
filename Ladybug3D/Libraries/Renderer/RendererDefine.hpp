@@ -4,7 +4,7 @@ namespace Ladybug3D {
 
 	constexpr unsigned int MAX_OBJECT_COUNT = 64;
 
-	struct DescriptorHeapIndex  {
+	struct ResourceDescriptorIndex  {
 		enum : unsigned int {
 			CB_PerScene			= 0,
 			CB_PerObject		= CB_PerScene + 1,
@@ -13,10 +13,18 @@ namespace Ladybug3D {
 		};
 	};
 
+	struct SamplerDescriptorIndex {
+		enum : unsigned char {
+			Sample,
+			Max,
+		};
+	};
+
 	struct RootSignatureIndex {
-		enum : unsigned int {
+		enum : unsigned char {
 			CB_PerScene,
 			CB_PerObject,
+			SRV_Skybox,
 			Max,
 		};
 	};

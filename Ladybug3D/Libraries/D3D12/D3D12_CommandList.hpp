@@ -16,6 +16,7 @@ namespace Ladybug3D::D3D12 {
 		void SetPipelineState(PipelineState* pso);
 		void SetRenderTarget(UINT numDesriptors, const D3D12_CPU_DESCRIPTOR_HANDLE* rtv, const D3D12_CPU_DESCRIPTOR_HANDLE* dsv = nullptr, bool isSingleToRange = false);
 		void TrackObject(const Microsoft::WRL::ComPtr<ID3D12Object>& obj);
+		void DrawScreenQuad();
 
 		auto GetCommandList() { return m_CommandList.Get(); }
 		auto GetFence() { return m_Fence.Get(); }

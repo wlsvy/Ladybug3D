@@ -1,27 +1,6 @@
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
+#include "Include/Common.hlsli"
 
-cbuffer CB_PerScene : register(b0)
-{
-    float4x4 g_ViewMatrix;
-    float4x4 g_ProjMatrix;
-    float4x4 g_ViewProjMatrix;
-};
-cbuffer CB_PerObject : register(b1)
-{
-    float4x4 g_WorldMatrix;
-    float4x4 g_CurWvpMatrix;
-    float4x4 g_PrevWvpMatrix;
 
-};
 
 struct VSInput
 {
