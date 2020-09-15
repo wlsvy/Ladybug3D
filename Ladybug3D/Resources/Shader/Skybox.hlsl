@@ -35,21 +35,5 @@ PSInput VSMain(VSInput input)
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    //return float4(0.2f, 1.0f, 1.0f, 1.0f);
-
     return SkyboxCubeMap.Sample(PointClamp, input.localPosition);
-    //float3 col = SkyboxCubeMap.Sample(PointClamp, input.localPosition);
-    //return float4(col, 1.0f);
-    return float4(0.4f, 0.4f, 0.7f, 1.0f);
-
-    /*Pixel_DeferredOpaque output;
-    output.pos = input.inLocalPos * 1000 + CameraPosition;
-    output.colorFlag = -1.0f;
-    output.normal = float3(-1.0f, -1.0f, -1.0f);
-    output.depth = 1.0f;
-    output.color = SkyboxCubeMap.Sample(LinearWrap, input.inLocalPos) * SkyBoxColor;
-    output.metal = 1.0f;
-    output.emission = 1.0f;
-    output.roughness = 1.0f;
-    return output;*/
 }
