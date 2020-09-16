@@ -15,6 +15,8 @@ namespace Ladybug3D::D3D12 {
 		ID3D12Resource* operator->() { return m_Resource.Get(); }
 		const ID3D12Resource* operator->() const { return m_Resource.Get(); }
 
+		void Reset();
+
 		auto GetResource() { return m_Resource.Get(); }
 		auto GetResourceAddress() { return m_Resource.GetAddressOf(); }
 

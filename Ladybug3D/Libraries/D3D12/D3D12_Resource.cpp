@@ -4,6 +4,10 @@
 
 namespace Ladybug3D::D3D12 {
 
+	void Resource::Reset() {
+		m_Resource.Reset();
+	}
+
 	void Resource::CreateBuffer(
 		ID3D12Device* device,
 		UINT size, 

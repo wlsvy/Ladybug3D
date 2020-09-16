@@ -41,6 +41,8 @@ namespace Ladybug3D {
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_CommandQueue;
 
         std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_MainRTVDescriptorHeap;
+        std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_DSVDescriptorHeap;
+        std::unique_ptr<D3D12::Texture> m_DepthStencilTextures[SWAPCHAIN_BUFFER_COUNT];
 
         UINT m_FrameIndex;
         float m_ClearColor[4] = { 0.45f, 0.55f, 0.60f, 0.00f };

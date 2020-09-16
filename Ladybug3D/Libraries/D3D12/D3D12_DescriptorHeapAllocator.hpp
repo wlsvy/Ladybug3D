@@ -10,7 +10,7 @@ namespace Ladybug3D::D3D12 {
 			ID3D12Device* device,
 			D3D12_DESCRIPTOR_HEAP_TYPE heapType,
 			D3D12_DESCRIPTOR_HEAP_FLAGS heapFlag,
-			uint32_t numDescriptorsPerHeap = 1024);
+			uint32_t numDescriptorsPerHeap = 256);
 		~DescriptorHeapAllocator();
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(int offset = 0) const;

@@ -29,5 +29,12 @@ namespace Ladybug3D {
 			Max,
 		};
 	};
+
+	struct RenderTargetIndex {
+		enum : unsigned char {
+			G_Buffer,
+			Max
+		};
+	};
 	
 }

@@ -55,6 +55,8 @@ namespace Ladybug3D {
 			m_CB_PerObject = make_unique<ConstantBuffer<CB_PerObject>>(m_Device.Get(), MAX_OBJECT_COUNT);
 			m_CB_PerScene = make_unique<ConstantBuffer<CB_PerScene>>(m_Device.Get());
 
+			
+
 			LoadAssets();
 			CreatePipelineState();
 			CreateResourceView();
@@ -65,6 +67,7 @@ namespace Ladybug3D {
 			m_Editor->Initialize(hwnd, m_Device.Get(), SWAPCHAIN_BUFFER_COUNT);
 			m_MainCam = make_shared<Camera>();
 			m_MainCam->SetProjectionValues(90.0f, m_aspectRatio, 0.1f, 1000.0f);
+			
 		}
 		catch (exception& e) {
 			cout << e.what() << endl;

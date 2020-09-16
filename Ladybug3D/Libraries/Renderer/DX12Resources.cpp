@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include <D3D12/D3D12_Util.hpp>
+#include <D3D12/D3D12_Texture.hpp>
 #include <D3D12/D3D12_DescriptorHeapAllocator.hpp>
 
 using namespace std;
@@ -38,11 +39,15 @@ namespace Ladybug3D {
 			CreateDevice(m_Adapter.Get());
 
 			m_MainRTVDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, SWAPCHAIN_BUFFER_COUNT);
+			m_DSVDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, SWAPCHAIN_BUFFER_COUNT);
+
+			for (auto& d : m_DepthStencilTextures) {
+				d = make_unique<Texture>();
+			}
 
 			CreateCommandQueue();
 			CreateSwapChain(hwnd);
 			CreateMainRTV();
-
 		}
 		catch (exception& e) {
 			cout << e.what() << endl;
@@ -189,6 +194,9 @@ namespace Ladybug3D {
 		{
 			ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargets[n])));
 			m_Device->CreateRenderTargetView(m_renderTargets[n].Get(), nullptr, m_MainRTVDescriptorHeap->GetCpuHandle(n));
+
+			m_DepthStencilTextures[n]->Intialize(m_Device.Get(), m_width, m_height, 1, DXGI_FORMAT_D32_FLOAT, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+			m_DepthStencilTextures[n]->CreateDepthStencilView(m_Device.Get(), m_DSVDescriptorHeap->GetCpuHandle(n), D3D12_DSV_FLAG_READ_ONLY_DEPTH);
 		}
 	}
 
@@ -251,6 +259,9 @@ namespace Ladybug3D {
 	{
 		for (auto& rtv : m_renderTargets) {
 			rtv.Reset();
+		}
+		for (auto& dsTexture : m_DepthStencilTextures) {
+			dsTexture->Reset();
 		}
 	}
 }
