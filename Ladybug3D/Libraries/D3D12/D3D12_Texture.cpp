@@ -229,7 +229,7 @@ namespace Ladybug3D::D3D12 {
 		D3D12_CLEAR_VALUE ClearValue = {};
 		ClearValue.Format = format;
 
-		CreateBuffer(device, desc, D3D12_HEAP_TYPE_DEFAULT, D3D12_HEAP_FLAG_NONE, D3D12_RESOURCE_STATE_COMMON, nullptr, &ClearValue);
+		CreateBuffer(device, desc, D3D12_HEAP_TYPE_DEFAULT, D3D12_HEAP_FLAG_NONE, D3D12_RESOURCE_STATE_DEPTH_READ, nullptr, &ClearValue);
 	}
 
 	void Texture::CreateShaderResourceView(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)

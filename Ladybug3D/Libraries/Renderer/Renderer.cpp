@@ -155,17 +155,19 @@ namespace Ladybug3D {
 		};
 
 		auto depthStencilDesc_None = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-		depthStencilDesc_None.DepthEnable = false;
-		depthStencilDesc_None.StencilEnable = false;
+		depthStencilDesc_None.DepthEnable = FALSE;
+		depthStencilDesc_None.StencilEnable = FALSE;
+		depthStencilDesc_None.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+		depthStencilDesc_None.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 
 		auto depthStencilDesc_DepthTestEnable = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-		depthStencilDesc_DepthTestEnable.DepthEnable = true;
-		depthStencilDesc_DepthTestEnable.StencilEnable = false;
-		depthStencilDesc_DepthTestEnable.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+		depthStencilDesc_DepthTestEnable.DepthEnable = TRUE;
+		depthStencilDesc_DepthTestEnable.StencilEnable = FALSE;
+		depthStencilDesc_DepthTestEnable.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
 
 		auto depthStencilDesc_DepthStencilTestEnable = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-		depthStencilDesc_DepthStencilTestEnable.DepthEnable = true;
-		depthStencilDesc_DepthStencilTestEnable.StencilEnable = true;
+		depthStencilDesc_DepthStencilTestEnable.DepthEnable = TRUE;
+		depthStencilDesc_DepthStencilTestEnable.StencilEnable = TRUE;
 		depthStencilDesc_DepthStencilTestEnable.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 
 		auto rasterizerDesc_CullBack = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -236,7 +238,8 @@ namespace Ladybug3D {
 			psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
 			psoDesc.RasterizerState = rasterizerDesc_CullBack;
 			psoDesc.BlendState = blendStateDesc_Opaque;
-			psoDesc.DepthStencilState = depthStencilDesc_None;
+			psoDesc.DepthStencilState = depthStencilDesc_DepthTestEnable;
+			psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 			psoDesc.SampleMask = UINT_MAX;
 			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 			psoDesc.NumRenderTargets = 1;
@@ -406,7 +409,7 @@ namespace Ladybug3D {
 		m_GraphicsCommandList->SetPipelineState(m_PSO_Default.get());
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::CB_PerScene, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::CB_PerScene));
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::SRV_Texture, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::SRV_SampleTexture));
-		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
+		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex), &m_DSVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 		
 		auto& sceneObjects = m_CurrentScene->GetSceneObjects();
 		UINT index = 0;
@@ -439,7 +442,7 @@ namespace Ladybug3D {
 
 		m_GraphicsCommandList->SetPipelineState(m_PSO_Skybox.get());
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::SRV_Texture, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::SRV_SampleTexture));
-		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
+		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex), &m_DSVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
 		for (auto& mesh : skyboxModel->GetMeshes()) {
 			m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
