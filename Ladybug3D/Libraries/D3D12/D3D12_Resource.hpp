@@ -12,6 +12,9 @@ namespace Ladybug3D::D3D12 {
 		Resource& operator=(const Resource&) = delete;
 		Resource& operator=(Resource&&) noexcept = default;
 
+		ID3D12Resource* operator->() { return m_Resource.Get(); }
+		const ID3D12Resource* operator->() const { return m_Resource.Get(); }
+
 		auto GetResource() { return m_Resource.Get(); }
 		auto GetResourceAddress() { return m_Resource.GetAddressOf(); }
 
