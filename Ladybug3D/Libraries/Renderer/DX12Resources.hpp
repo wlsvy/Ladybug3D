@@ -40,6 +40,7 @@ namespace Ladybug3D {
         Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[SWAPCHAIN_BUFFER_COUNT];
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_CommandQueue;
 
+        std::unique_ptr<D3D12::GraphicsCommandList> m_GraphicsCommandList;
         std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_MainRTVDescriptorHeap;
         std::unique_ptr<Ladybug3D::D3D12::DescriptorHeapAllocator> m_DSVDescriptorHeap;
         std::unique_ptr<D3D12::Texture> m_DepthStencilTextures[SWAPCHAIN_BUFFER_COUNT];

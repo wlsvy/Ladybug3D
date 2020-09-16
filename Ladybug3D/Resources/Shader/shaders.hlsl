@@ -32,6 +32,7 @@ PSInput VSMain(VSInput input)
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-    //return float4(1.0f, 1.0f, 1.0f, 1.0f);
+    float depth = input.position.z / input.position.w;
+    //return float4(depth, depth, depth, 1.0f);
     return SampleTexture.Sample(LinearWrap, input.uv);
 }

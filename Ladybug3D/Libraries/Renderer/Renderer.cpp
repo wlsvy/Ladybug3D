@@ -49,7 +49,6 @@ namespace Ladybug3D {
 				return false;
 			}
 
-			m_GraphicsCommandList = make_unique<GraphicsCommandList>(m_Device.Get());
 			m_ResourceDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, ResourceDescriptorIndex::Max);
 
 			m_CB_PerObject = make_unique<ConstantBuffer<CB_PerObject>>(m_Device.Get(), MAX_OBJECT_COUNT);
@@ -163,12 +162,13 @@ namespace Ladybug3D {
 		auto depthStencilDesc_DepthTestEnable = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		depthStencilDesc_DepthTestEnable.DepthEnable = TRUE;
 		depthStencilDesc_DepthTestEnable.StencilEnable = FALSE;
-		depthStencilDesc_DepthTestEnable.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+		depthStencilDesc_DepthTestEnable.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+		depthStencilDesc_DepthTestEnable.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
 		auto depthStencilDesc_DepthStencilTestEnable = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		depthStencilDesc_DepthStencilTestEnable.DepthEnable = TRUE;
 		depthStencilDesc_DepthStencilTestEnable.StencilEnable = TRUE;
-		depthStencilDesc_DepthStencilTestEnable.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+		depthStencilDesc_DepthStencilTestEnable.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
 		auto rasterizerDesc_CullBack = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		rasterizerDesc_CullBack.FillMode = D3D12_FILL_MODE_SOLID;
@@ -273,7 +273,8 @@ namespace Ladybug3D {
 			psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
 			psoDesc.RasterizerState = rasterizerDesc_CullNone;
 			psoDesc.BlendState = blendStateDesc_Opaque;
-			psoDesc.DepthStencilState = depthStencilDesc_None;
+			psoDesc.DepthStencilState = depthStencilDesc_DepthTestEnable;
+			psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 			psoDesc.SampleMask = UINT_MAX;
 			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 			psoDesc.NumRenderTargets = 1;
@@ -338,6 +339,7 @@ namespace Ladybug3D {
 			m_CB_PerObject->CreateConstantBufferView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::CB_PerObject + i), i);
 		}
 		
+		//m_DepthStencilTextures[0]->CreateShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_SampleTexture));
 		ResourceManager::GetInstance().GetTexture("Sample")->CreateShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_SampleTexture));
 		ResourceManager::GetInstance().GetTexture("grasscube1024")->CreateCubeMapShaderResourceView(m_Device.Get(), m_ResourceDescriptorHeap->GetCpuHandle(ResourceDescriptorIndex::SRV_Skybox));
 
@@ -349,7 +351,6 @@ namespace Ladybug3D {
 		m_CB_PerScene->Data->projMatrix = m_MainCam->GetProjectionMatrix();
 		m_CB_PerScene->Data->viewProjMatrix = m_MainCam->GetViewProjectionMatrix();
 		m_CB_PerScene->Data->CameraWorldPosition = m_MainCam->GetTransform()->positionVec;
-		m_MainCam->GetTransform()->scale = XMFLOAT3(100, 100, 100);
 		m_CB_PerScene->Data->CameraWorldMatrix = XMMatrixTranslationFromVector(m_MainCam->GetTransform()->positionVec);
 
 		auto& sceneObjects = m_CurrentScene->GetSceneObjects();
@@ -388,6 +389,7 @@ namespace Ladybug3D {
 		m_GraphicsCommandList->Reset();
 		m_GraphicsCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_FrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 		m_GraphicsCommandList->ClearRenderTarget(m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex), m_ClearColor);
+		m_GraphicsCommandList->GetCommandList()->ClearDepthStencilView(m_DSVDescriptorHeap->GetCpuHandle(m_FrameIndex), D3D12_CLEAR_FLAG_DEPTH, 1.0f ,0, 0, nullptr);
 		m_GraphicsCommandList->GetCommandList()->RSSetViewports(1, &m_viewport);
 		m_GraphicsCommandList->GetCommandList()->RSSetScissorRects(1, &m_scissorRect);
 

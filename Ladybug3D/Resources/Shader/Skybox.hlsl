@@ -28,7 +28,7 @@ struct PS_OUTPUT_Deferred
 PSInput VSMain(VSInput input)
 {
 	PSInput output;
-    output.position = mul(g_ViewProjMatrix, float4(input.position + g_CameraWorldPosition.xyz, 1.0f)).xyww; // z / w = 1이 되도록(즉 하늘 돔이 항상 면 평면에 있도록) z = w로 설정
+    output.position = mul(g_ViewProjMatrix, float4(input.position + g_CameraWorldPosition.xyz, 1.0f)).xyzz; // z / w = 1이 되도록(즉 하늘 돔이 항상 면 평면에 있도록) z = w로 설정
     output.localPosition = input.position;
     return output;
 }
