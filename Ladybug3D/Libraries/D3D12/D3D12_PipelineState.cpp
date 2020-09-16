@@ -32,9 +32,4 @@ namespace Ladybug3D::D3D12 {
 	PipelineState::~PipelineState()
 	{
 	}
-
-	/*D3D_PRIMITIVE_TOPOLOGY PipelineState::GetPrimitiveTopology() const
-	{
-		return static_cast<D3D_PRIMITIVE_TOPOLOGY>(m_PrimitiveTopologyType);
-	}*/
 }

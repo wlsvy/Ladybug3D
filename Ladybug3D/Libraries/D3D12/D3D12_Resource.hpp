@@ -28,6 +28,15 @@ namespace Ladybug3D::D3D12 {
 			ID3D12Resource** resource = nullptr,
 			const D3D12_CLEAR_VALUE* clearValue = nullptr);
 
+		void CreateBuffer(
+			ID3D12Device* device,
+			D3D12_RESOURCE_DESC& resourceDesc,
+			D3D12_HEAP_TYPE heapType = D3D12_HEAP_TYPE_DEFAULT,
+			D3D12_HEAP_FLAGS heapFlag = D3D12_HEAP_FLAG_NONE,
+			D3D12_RESOURCE_STATES intialResourceState = D3D12_RESOURCE_STATE_GENERIC_READ,
+			ID3D12Resource** resource = nullptr,
+			const D3D12_CLEAR_VALUE* clearValue = nullptr);
+
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_Resource;
 	};
 }
