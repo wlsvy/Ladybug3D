@@ -47,7 +47,6 @@ namespace Ladybug3D {
 
         std::unique_ptr<D3D12::GraphicsCommandList> m_GraphicsCommandList;
         std::unique_ptr<D3D12::DescriptorHeapAllocator> m_ResourceDescriptorHeap;
-        std::unique_ptr<D3D12::DescriptorHeapAllocator> m_SamplerDescriptorHeap;
 
         std::unique_ptr<D3D12::PipelineState> m_PSO_Default;
         std::unique_ptr<D3D12::PipelineState> m_PSO_Skybox;

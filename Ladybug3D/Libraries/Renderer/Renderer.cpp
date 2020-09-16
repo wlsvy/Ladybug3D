@@ -51,7 +51,6 @@ namespace Ladybug3D {
 
 			m_GraphicsCommandList = make_unique<GraphicsCommandList>(m_Device.Get());
 			m_ResourceDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, ResourceDescriptorIndex::Max);
-			m_SamplerDescriptorHeap = make_unique<DescriptorHeapAllocator>(m_Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, ResourceDescriptorIndex::Max);
 
 			m_CB_PerObject = make_unique<ConstantBuffer<CB_PerObject>>(m_Device.Get(), MAX_OBJECT_COUNT);
 			m_CB_PerScene = make_unique<ConstantBuffer<CB_PerScene>>(m_Device.Get());
@@ -66,8 +65,6 @@ namespace Ladybug3D {
 			m_Editor->Initialize(hwnd, m_Device.Get(), SWAPCHAIN_BUFFER_COUNT);
 			m_MainCam = make_shared<Camera>();
 			m_MainCam->SetProjectionValues(90.0f, m_aspectRatio, 0.1f, 1000.0f);
-
-			
 		}
 		catch (exception& e) {
 			cout << e.what() << endl;
@@ -93,18 +90,7 @@ namespace Ladybug3D {
 	void Renderer::CreatePipelineState()
 	{
 		HRESULT hr;
-		D3D12_INPUT_ELEMENT_DESC inputElement_Vertex3D[] =
-		{
-			{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "NORMAL",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,		0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "TANGENT",	0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		};
-		D3D12_INPUT_ELEMENT_DESC inputElement_Vertex_Color[] =
-		{
-			{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "COLOR",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		};
+		auto& resourceManager = ResourceManager::GetInstance();
 
 		D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = { D3D_ROOT_SIGNATURE_VERSION_1_1 };
 		if (FAILED(m_Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
@@ -134,7 +120,6 @@ namespace Ladybug3D {
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, _countof(samplerDesc), samplerDesc, rootSignatureFlag);
-		//rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlag);
 
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
@@ -153,7 +138,75 @@ namespace Ladybug3D {
 		compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
-		auto& resourceManager = ResourceManager::GetInstance();
+		D3D12_INPUT_ELEMENT_DESC inputElement_Vertex3D[] =
+		{
+			{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "NORMAL",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,		0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "TANGENT",	0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		};
+		D3D12_INPUT_ELEMENT_DESC inputElement_Vertex_Color[] =
+		{
+			{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "COLOR",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		};
+
+		auto depthStencilDesc_None = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+		depthStencilDesc_None.DepthEnable = false;
+		depthStencilDesc_None.StencilEnable = false;
+
+		auto depthStencilDesc_DepthTestEnable = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+		depthStencilDesc_DepthTestEnable.DepthEnable = true;
+		depthStencilDesc_DepthTestEnable.StencilEnable = false;
+		depthStencilDesc_DepthTestEnable.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+
+		auto depthStencilDesc_DepthStencilTestEnable = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+		depthStencilDesc_DepthStencilTestEnable.DepthEnable = true;
+		depthStencilDesc_DepthStencilTestEnable.StencilEnable = true;
+		depthStencilDesc_DepthStencilTestEnable.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+
+		auto rasterizerDesc_CullBack = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+		rasterizerDesc_CullBack.FillMode = D3D12_FILL_MODE_SOLID;
+		rasterizerDesc_CullBack.CullMode = D3D12_CULL_MODE_BACK;
+
+		auto rasterizerDesc_CullNone = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+		rasterizerDesc_CullNone.FillMode = D3D12_FILL_MODE_SOLID;
+		rasterizerDesc_CullNone.CullMode = D3D12_CULL_MODE_NONE;
+
+		auto rasterizerDesc_WireFrame = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+		rasterizerDesc_WireFrame.FillMode = D3D12_FILL_MODE_WIREFRAME;
+		rasterizerDesc_WireFrame.CullMode = D3D12_CULL_MODE_NONE;
+
+
+		auto blendStateDesc_Opaque = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+		blendStateDesc_Opaque.IndependentBlendEnable = false;
+		for (auto& renderTargetDesc : blendStateDesc_Opaque.RenderTarget) {
+			renderTargetDesc.BlendEnable = false;
+			renderTargetDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+			renderTargetDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+			renderTargetDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+			renderTargetDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+		}
+
+		auto blendStateDesc_Alpha = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+		blendStateDesc_Alpha.IndependentBlendEnable = true;
+		for (auto& renderTargetDesc : blendStateDesc_Alpha.RenderTarget) {
+			renderTargetDesc.BlendEnable = true;
+			renderTargetDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+			renderTargetDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+			renderTargetDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+			renderTargetDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+		}
+
+		auto blendStateDesc_Additive = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+		blendStateDesc_Additive.IndependentBlendEnable = true;
+		for (auto& renderTargetDesc : blendStateDesc_Additive.RenderTarget) {
+			renderTargetDesc.BlendEnable = true;
+			renderTargetDesc.SrcBlend = D3D12_BLEND_ONE;
+			renderTargetDesc.DestBlend = D3D12_BLEND_ONE;
+			renderTargetDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+			renderTargetDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+		}
 
 		{
 			ComPtr<ID3DBlob> vertexShader;
@@ -172,15 +225,15 @@ namespace Ladybug3D {
 				ThrowIfFailed(hr);
 			}
 
+			
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 			psoDesc.InputLayout = { inputElement_Vertex3D, _countof(inputElement_Vertex3D) };
 			psoDesc.pRootSignature = rootSignature.Get();
 			psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
 			psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
-			psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-			psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-			psoDesc.DepthStencilState.DepthEnable = FALSE;
-			psoDesc.DepthStencilState.StencilEnable = FALSE;
+			psoDesc.RasterizerState = rasterizerDesc_CullBack;
+			psoDesc.BlendState = blendStateDesc_Opaque;
+			psoDesc.DepthStencilState = depthStencilDesc_None;
 			psoDesc.SampleMask = UINT_MAX;
 			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 			psoDesc.NumRenderTargets = 1;
@@ -212,11 +265,9 @@ namespace Ladybug3D {
 			psoDesc.pRootSignature = rootSignature.Get();
 			psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.Get());
 			psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.Get());
-			psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-			psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-			psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-			psoDesc.DepthStencilState.DepthEnable = FALSE;
-			psoDesc.DepthStencilState.StencilEnable = FALSE;
+			psoDesc.RasterizerState = rasterizerDesc_CullNone;
+			psoDesc.BlendState = blendStateDesc_Opaque;
+			psoDesc.DepthStencilState = depthStencilDesc_None;
 			psoDesc.SampleMask = UINT_MAX;
 			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 			psoDesc.NumRenderTargets = 1;
@@ -349,7 +400,6 @@ namespace Ladybug3D {
 
 	void Renderer::Pass_Main()
 	{
-
 		m_GraphicsCommandList->SetPipelineState(m_PSO_Default.get());
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::CB_PerScene, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::CB_PerScene));
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::SRV_Texture, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::SRV_SampleTexture));
@@ -382,13 +432,13 @@ namespace Ladybug3D {
 
 	void Renderer::Pass_Skybox()
 	{
-		static auto s_CubeModel = ResourceManager::GetInstance().GetModel("sphere").get();
+		static auto skyboxModel = ResourceManager::GetInstance().GetModel("sphere").get();
 
 		m_GraphicsCommandList->SetPipelineState(m_PSO_Skybox.get());
 		m_GraphicsCommandList->GetCommandList()->SetGraphicsRootDescriptorTable(RootSignatureIndex::SRV_Texture, m_ResourceDescriptorHeap->GetGpuHandle(ResourceDescriptorIndex::SRV_SampleTexture));
 		m_GraphicsCommandList->SetRenderTarget(1, &m_MainRTVDescriptorHeap->GetCpuHandle(m_FrameIndex));
 
-		for (auto& mesh : s_CubeModel->GetMeshes()) {
+		for (auto& mesh : skyboxModel->GetMeshes()) {
 			m_GraphicsCommandList->GetCommandList()->IASetVertexBuffers(0, 1, mesh.GetVertexBufferView());
 			m_GraphicsCommandList->GetCommandList()->IASetIndexBuffer(mesh.GetIndexBufferView());
 			m_GraphicsCommandList->GetCommandList()->DrawIndexedInstanced(mesh.GetIndexBuffer()->GetNumIndices(), 1, 0, 0, 0);
